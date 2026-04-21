@@ -5,6 +5,8 @@ import { UseCaseGrid } from '../components/UseCaseGrid';
 import { subsystems } from '../models/subsystemsCatalog';
 import type { Subsystem, SubsystemId } from '../models/subsystem';
 import { AdministrationView } from './AdministrationView';
+import { LockerView } from './LockerView';
+import { ShipmentsCrudView } from './ShipmentsCrudView';
 
 function getInitialSubsystem(): SubsystemId {
   const hash = window.location.hash.replace('#', '');
@@ -15,6 +17,8 @@ function getInitialSubsystem(): SubsystemId {
 
 export function SubsystemsView() {
   const [activeId, setActiveId] = useState<SubsystemId>(getInitialSubsystem);
+  const [isLockerWindowOpen, setIsLockerWindowOpen] = useState(false);
+  const [shipmentsRefreshToken, setShipmentsRefreshToken] = useState(0);
 
   const activeSubsystem = useMemo<Subsystem>(
     () => subsystems.find((subsystem) => subsystem.id === activeId) ?? subsystems[0],
@@ -32,6 +36,10 @@ export function SubsystemsView() {
     window.history.replaceState(null, '', `#${id}`);
   };
 
+  const notifyShipmentsChanged = () => {
+    setShipmentsRefreshToken((current) => current + 1);
+  };
+
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="Posistemiai">
@@ -41,11 +49,18 @@ export function SubsystemsView() {
           </span>
           <div>
             <h1>Pastomatai</h1>
-            <p>Siuntų valdymo sistema</p>
+            <p>Siuntu valdymo sistema</p>
           </div>
         </div>
 
         <SubsystemNav activeId={activeId} subsystems={subsystems} onSelect={selectSubsystem} />
+
+        <div className="sidebar-tools">
+          <button className="sidebar-tool-button" type="button" onClick={() => setIsLockerWindowOpen(true)}>
+            <span>Pastomato simuliacija</span>
+            <small>Atskiras langas demonstracijai</small>
+          </button>
+        </div>
       </aside>
 
       <section className="workspace" aria-labelledby="subsystem-title">
@@ -58,9 +73,24 @@ export function SubsystemsView() {
         {activeId === 'administration' ? (
           <AdministrationView />
         ) : (
-          <UseCaseGrid useCases={activeSubsystem.useCases} />
+          <>
+            <UseCaseGrid useCases={activeSubsystem.useCases} />
+            {activeSubsystem.id === 'shipments' ? (
+              <ShipmentsCrudView
+                onShipmentsChanged={notifyShipmentsChanged}
+                refreshToken={shipmentsRefreshToken}
+              />
+            ) : null}
+          </>
         )}
       </section>
+
+      <LockerView
+        isOpen={isLockerWindowOpen}
+        onClose={() => setIsLockerWindowOpen(false)}
+        onShipmentsChanged={notifyShipmentsChanged}
+        refreshToken={shipmentsRefreshToken}
+      />
     </main>
   );
 }

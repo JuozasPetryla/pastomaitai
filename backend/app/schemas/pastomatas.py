@@ -1,9 +1,11 @@
-from datetime import datetime
+from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.pastomatas import PastomatoBusena
-from app.models.siunta import SiuntosDydis
+from app.models.siunta import SiuntosBusena, SiuntosDydis
+from app.schemas.siunta import ShipmentPartyBase, ShipmentResponse
 
 
 class PastomatoSkyriusRead(BaseModel):
@@ -52,7 +54,7 @@ class PastomatasCreate(BaseModel):
     @model_validator(mode="after")
     def validate_total_compartments(self) -> "PastomatasCreate":
         if sum(grupe.kiekis for grupe in self.skyriai) > 500:
-            raise ValueError("Paštomatas gali turėti ne daugiau kaip 500 skyrių")
+            raise ValueError("Pastomatas gali tureti ne daugiau kaip 500 skyriu")
         return self
 
 
@@ -64,5 +66,55 @@ class PastomatasUpdate(BaseModel):
     @model_validator(mode="after")
     def require_at_least_one_field(self) -> "PastomatasUpdate":
         if self.adresas is None and self.busena is None and self.produkto_kodas is None:
-            raise ValueError("Reikia pateikti bent vieną keičiamą lauką")
+            raise ValueError("Reikia pateikti bent viena keiciama lauka")
         return self
+
+
+class LockerRegistrationRequest(BaseModel):
+    siuntejas: ShipmentPartyBase
+    gavejas: ShipmentPartyBase
+    dydis: SiuntosDydis
+    gavimo_adresas: str = Field(min_length=3, max_length=255)
+    siuntimo_adresas: str = Field(min_length=3, max_length=255)
+    data: date = Field(default_factory=date.today)
+    saskaita: str | None = Field(default=None, max_length=255)
+
+
+class LockerShipmentCodeRequest(BaseModel):
+    siuntos_kodas: str = Field(min_length=3, max_length=64)
+
+
+class LockerCellResponse(BaseModel):
+    id: int
+    numeris: int
+    dydis: SiuntosDydis
+    uzimtas: bool
+    dureles_atidarytos: bool
+    siuntos_kodas: str | None = None
+    siuntos_busena: SiuntosBusena | None = None
+
+
+class LockerActiveSessionResponse(BaseModel):
+    veiksmas: Literal["idejimas", "atsiemimas"]
+    siuntos_id: int
+    siuntos_kodas: str
+    skyriaus_id: int
+    skyriaus_numeris: int
+    dureles_atidarytos: bool
+
+
+class LockerStateResponse(BaseModel):
+    id: int
+    produkto_kodas: str
+    adresas: str
+    busena: PastomatoBusena
+    created_at: datetime
+    updated_at: datetime
+    skyriai: list[LockerCellResponse]
+    aktyvi_sesija: LockerActiveSessionResponse | None = None
+
+
+class LockerActionResponse(BaseModel):
+    zinute: str
+    locker: LockerStateResponse
+    siunta: ShipmentResponse | None = None

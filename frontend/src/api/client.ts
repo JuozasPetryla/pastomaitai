@@ -1,46 +1,8 @@
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
-export async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${apiUrl}${path}`);
-
-  return parseResponse<T>(response);
-}
-
-export async function apiPost<TResponse, TPayload>(path: string, payload: TPayload): Promise<TResponse> {
-  const response = await fetch(`${apiUrl}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  return parseResponse<TResponse>(response);
-}
-
-export async function apiPatch<TResponse, TPayload>(path: string, payload: TPayload): Promise<TResponse> {
-  const response = await fetch(`${apiUrl}${path}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  return parseResponse<TResponse>(response);
-}
-
-export async function apiDelete(path: string): Promise<void> {
-  const response = await fetch(`${apiUrl}${path}`, { method: 'DELETE' });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-}
-
-async function parseResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  return response.json() as Promise<T>;
-}
+type ApiRequestOptions = Omit<RequestInit, 'body'> & {
+  body?: unknown;
+};
 
 async function getErrorMessage(response: Response): Promise<string> {
   try {
@@ -49,4 +11,54 @@ async function getErrorMessage(response: Response): Promise<string> {
   } catch {
     return `API request failed: ${response.status}`;
   }
+}
+
+async function parseResponse<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+
+  if (options.body !== undefined && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  const response = await fetch(`${apiUrl}${path}`, {
+    ...options,
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  });
+
+  return parseResponse<T>(response);
+}
+
+export async function apiGet<T>(path: string): Promise<T> {
+  return apiRequest<T>(path);
+}
+
+export async function apiPost<TResponse, TPayload>(path: string, payload: TPayload): Promise<TResponse> {
+  return apiRequest<TResponse>(path, {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export async function apiPatch<TResponse, TPayload>(path: string, payload: TPayload): Promise<TResponse> {
+  return apiRequest<TResponse>(path, {
+    method: 'PATCH',
+    body: payload,
+  });
+}
+
+export async function apiDelete(path: string): Promise<void> {
+  await apiRequest<void>(path, { method: 'DELETE' });
 }
