@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.subsystems import router as subsystems_router
+from app.controllers.subsystems_controller import router as subsystems_router
 from app.core.config import settings
 
 app = FastAPI(title=settings.app_name)

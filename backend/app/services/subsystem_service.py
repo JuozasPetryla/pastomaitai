@@ -1,16 +1,4 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
-
-router = APIRouter(prefix="/subsystems", tags=["subsystems"])
-
-
-class Subsystem(BaseModel):
-    id: str
-    name: str
-    description: str
-    primary_actor: str
-    use_cases: list[str]
-
+from app.schemas.subsystem import Subsystem
 
 SUBSYSTEMS: list[Subsystem] = [
     Subsystem(
@@ -81,6 +69,5 @@ SUBSYSTEMS: list[Subsystem] = [
 ]
 
 
-@router.get("")
-async def list_subsystems() -> list[Subsystem]:
+def list_subsystems() -> list[Subsystem]:
     return SUBSYSTEMS
