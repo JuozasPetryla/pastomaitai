@@ -16,7 +16,6 @@ from app.schemas.pastomatas import (
 )
 from app.schemas.siunta import ShipmentCreate
 from app.services.shipment_service import (
-    calculate_shipment_price,
     commit_session,
     create_shipment,
     ensure_shipment_status,
@@ -158,33 +157,6 @@ def _find_free_cell(locker: Pastomatas, size: SiuntosDydis) -> PastomatoSkyrius:
     )
 
 
-def _get_requested_cell(
-    locker: Pastomatas,
-    locker_cell_id: int,
-    size: SiuntosDydis,
-) -> PastomatoSkyrius:
-    cell = next((current for current in locker.skyriai if current.id == locker_cell_id), None)
-    if cell is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Pasirinktas pastomato skyrius nerastas.",
-        )
-
-    if cell.dydis != size:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Pasirinktas skyrius netinka {size.value.upper()} dydzio siuntai.",
-        )
-
-    if cell.siunta is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Pasirinktas skyrius jau uzimtas.",
-        )
-
-    return cell
-
-
 def _build_action_response(
     locker: Pastomatas,
     shipment_response,
@@ -215,7 +187,6 @@ async def register_shipment_at_locker(
             gavimo_adresas=payload.gavimo_adresas,
             siuntimo_adresas=payload.siuntimo_adresas,
             data=payload.data,
-            suma=calculate_shipment_price(payload.dydis.value),
             saskaita=payload.saskaita,
             apmokamas_pastomate=True,
             pastomato_skyrius_id=None,
@@ -253,14 +224,13 @@ async def pay_shipment_at_locker(
 async def open_send_locker(
     session: AsyncSession,
     shipment_code: str,
-    locker_cell_id: int,
 ) -> LockerActionResponse:
     _ensure_no_open_session()
     locker = await _load_demo_locker(session)
     shipment = await get_shipment_by_code_record(session, shipment_code)
     ensure_shipment_status(shipment, {SiuntosBusena.apmoketa}, "atidaryti siuntimui")
 
-    free_cell = _get_requested_cell(locker, locker_cell_id, shipment.dydis)
+    free_cell = _find_free_cell(locker, shipment.dydis)
     shipment.pastomato_skyrius_id = free_cell.id
     await commit_session(session)
 

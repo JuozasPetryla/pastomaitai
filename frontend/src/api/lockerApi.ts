@@ -93,7 +93,7 @@ function toLockerRegistrationPayload(payload: LockerRegistration) {
     dydis: payload.dydis,
     gavimo_adresas: payload.gavimoAdresas,
     siuntimo_adresas: payload.siuntimoAdresas,
-    data: payload.data,
+    ...(payload.data ? { data: payload.data } : {}),
   };
 }
 
@@ -118,13 +118,10 @@ export async function payAtLocker(shipmentCode: string): Promise<LockerActionRes
   return toLockerActionResult(response);
 }
 
-export async function openSendLocker(
-  shipmentCode: string,
-  lockerCellId: number,
-): Promise<LockerActionResult> {
+export async function openSendLocker(shipmentCode: string): Promise<LockerActionResult> {
   const response = await apiRequest<LockerActionResponse>('/api/lockers/demo/send/open', {
     method: 'POST',
-    body: { siuntos_kodas: shipmentCode, skyriaus_id: lockerCellId },
+    body: { siuntos_kodas: shipmentCode },
   });
   return toLockerActionResult(response);
 }

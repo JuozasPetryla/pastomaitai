@@ -76,16 +76,12 @@ class LockerRegistrationRequest(BaseModel):
     dydis: SiuntosDydis
     gavimo_adresas: str = Field(min_length=3, max_length=255)
     siuntimo_adresas: str = Field(min_length=3, max_length=255)
-    data: date
+    data: date = Field(default_factory=date.today)
     saskaita: str | None = Field(default=None, max_length=255)
 
 
 class LockerShipmentCodeRequest(BaseModel):
     siuntos_kodas: str = Field(min_length=3, max_length=64)
-
-
-class LockerSendRequest(LockerShipmentCodeRequest):
-    skyriaus_id: int = Field(ge=1)
 
 
 class LockerCellResponse(BaseModel):

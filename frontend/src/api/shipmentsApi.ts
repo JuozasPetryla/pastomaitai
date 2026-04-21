@@ -76,7 +76,7 @@ function toPayload(payload: ShipmentUpsert) {
     dydis: payload.dydis,
     gavimo_adresas: payload.gavimoAdresas,
     siuntimo_adresas: payload.siuntimoAdresas,
-    data: payload.data,
+    ...(payload.data ? { data: payload.data } : {}),
     apmokamas_pastomate: payload.apmokamasPastomate,
     pastomato_skyrius_id: payload.pastomatoSkyriausId,
   };

@@ -45,7 +45,7 @@ export type LockerRegistration = {
   dydis: ShipmentSize;
   gavimoAdresas: string;
   siuntimoAdresas: string;
-  data: string;
+  data?: string;
 };
 
 export type LockerActionResult = {

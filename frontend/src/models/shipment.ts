@@ -46,7 +46,7 @@ export type ShipmentUpsert = {
   dydis: ShipmentSize;
   gavimoAdresas: string;
   siuntimoAdresas: string;
-  data: string;
+  data?: string;
   apmokamasPastomate: boolean;
   pastomatoSkyriausId: number | null;
 };

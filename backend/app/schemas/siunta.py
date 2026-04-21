@@ -26,7 +26,7 @@ class ShipmentCreate(BaseModel):
     dydis: SiuntosDydis
     gavimo_adresas: str = Field(min_length=3, max_length=255)
     siuntimo_adresas: str = Field(min_length=3, max_length=255)
-    data: date
+    data: date = Field(default_factory=date.today)
     suma: Decimal | None = Field(default=None, ge=0, decimal_places=2, max_digits=10)
     saskaita: str | None = Field(default=None, max_length=255)
     apmokamas_pastomate: bool = False

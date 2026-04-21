@@ -30,6 +30,7 @@ button {
 .sidebar {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 32px;
   padding: 28px;
   background: #18241f;
@@ -74,6 +75,30 @@ button {
 .subsystem-nav {
   display: grid;
   gap: 10px;
+}
+
+.sidebar-tools {
+  display: grid;
+  gap: 12px;
+}
+
+.sidebar-tool-button {
+  display: grid;
+  gap: 6px;
+  min-height: 88px;
+  padding: 16px;
+  border: 1px solid #40544a;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgb(230 200 79 / 18%), transparent 55%),
+    linear-gradient(180deg, #1d2c26 0%, #131d19 100%);
+  color: #f8f6ed;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-tool-button small {
+  color: #b9c4bd;
 }
 
 .subsystem-nav button {
@@ -449,7 +474,7 @@ button {
 
 .shipments-dashboard {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 400px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
 }
 
@@ -460,12 +485,25 @@ button {
   gap: 18px;
 }
 
+.shipments-main-column {
+  max-width: 1120px;
+}
+
 .shipments-content-grid {
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
 }
 
 .shipment-checkout-card {
   gap: 22px;
+}
+
+.shipment-form-fieldset {
+  display: grid;
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
 }
 
 .checkout-section h4,
@@ -490,6 +528,31 @@ button {
 .terminal-copy {
   color: #56635d;
   line-height: 1.45;
+}
+
+.checkout-review-card {
+  align-content: start;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.review-grid div,
+.terminal-size-stats div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid #e4dcc5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.review-grid span,
+.terminal-size-stats span {
+  color: #69746e;
 }
 
 .size-selector {
@@ -559,6 +622,10 @@ button {
   box-shadow: 0 28px 70px rgb(15 18 14 / 28%);
 }
 
+.locker-terminal-shell-modal {
+  width: 100%;
+}
+
 .locker-terminal-topbar {
   display: flex;
   align-items: start;
@@ -583,6 +650,54 @@ button {
   min-height: 680px;
 }
 
+.locker-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(11 16 14 / 62%);
+  backdrop-filter: blur(8px);
+}
+
+.locker-modal {
+  display: grid;
+  gap: 16px;
+  width: min(1180px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 28px;
+  background: linear-gradient(180deg, #151715 0%, #0f100f 100%);
+  box-shadow: 0 40px 90px rgb(0 0 0 / 38%);
+}
+
+.locker-modal-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  color: #f3f2ea;
+}
+
+.locker-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.locker-modal-close {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #5b5a55;
+  border-radius: 10px;
+  background: #242522;
+  color: #f3f2ea;
+  cursor: pointer;
+}
+
 .locker-screen-header {
   display: flex;
   justify-content: space-between;
@@ -597,9 +712,19 @@ button {
   gap: 14px;
 }
 
+.terminal-home-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .terminal-form-grid {
   display: grid;
   gap: 12px;
+}
+
+.terminal-form-grid-wide {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .terminal-form-grid label {
@@ -620,10 +745,23 @@ button {
   color: #173025;
 }
 
+.terminal-panel > select,
+.terminal-panel > input {
+  min-height: 42px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #b5c3b0;
+  border-radius: 10px;
+  background: #fbfdf8;
+  color: #173025;
+}
+
 .terminal-size-row,
 .terminal-cells,
 .locker-terminal-cells,
-.locker-hardware-buttons {
+.locker-hardware-buttons,
+.service-mode-switch,
+.terminal-size-stats {
   display: grid;
   gap: 10px;
 }
@@ -685,6 +823,34 @@ button {
 
 .locker-cell small {
   color: #506058;
+}
+
+.service-mode-switch {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.service-mode-switch button {
+  min-height: 48px;
+  border: 1px solid #c2ccb8;
+  border-radius: 10px;
+  background: #fff;
+  color: #173025;
+  font-weight: 700;
+}
+
+.service-mode-switch button.active {
+  border-color: #173025;
+  background: #173025;
+  color: #f8f6ed;
+}
+
+.terminal-size-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.terminal-size-stats div.active {
+  border-color: #173025;
+  background: #eef6eb;
 }
 
 .locker-hardware-buttons {
@@ -885,7 +1051,12 @@ button {
   .form-grid,
   .size-selector,
   .terminal-size-row,
-  .locker-hardware-buttons {
+  .locker-hardware-buttons,
+  .terminal-home-actions,
+  .terminal-form-grid-wide,
+  .service-mode-switch,
+  .terminal-size-stats,
+  .review-grid {
     grid-template-columns: 1fr;
   }
 }

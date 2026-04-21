@@ -5,7 +5,6 @@ from app.db.session import get_session
 from app.schemas.pastomatas import (
     LockerActionResponse,
     LockerRegistrationRequest,
-    LockerSendRequest,
     LockerShipmentCodeRequest,
     LockerStateResponse,
 )
@@ -48,10 +47,10 @@ async def pay_from_locker(
 
 @router.post("/demo/send/open", response_model=LockerActionResponse)
 async def open_send_doors(
-    payload: LockerSendRequest,
+    payload: LockerShipmentCodeRequest,
     session: AsyncSession = session_dependency,
 ) -> LockerActionResponse:
-    return await open_send_locker(session, payload.siuntos_kodas, payload.skyriaus_id)
+    return await open_send_locker(session, payload.siuntos_kodas)
 
 
 @router.post("/demo/send/deliver", response_model=LockerActionResponse)

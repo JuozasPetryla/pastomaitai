@@ -11,7 +11,11 @@ import {
 } from '../api/shipmentsApi';
 import type { LockerAddressOption } from '../models/locker';
 import type { Shipment, ShipmentPartyInput, ShipmentStatus, ShipmentUpsert } from '../models/shipment';
-import { LockerView } from './LockerView';
+
+type ShipmentsCrudViewProps = {
+  refreshToken: number;
+  onShipmentsChanged: () => void;
+};
 
 type ShipmentFormState = ShipmentUpsert;
 
@@ -28,13 +32,15 @@ const emptyParty = (): ShipmentPartyInput => ({
   elPastas: '',
 });
 
+const currentDateValue = (): string => new Date().toISOString().slice(0, 10);
+
 const emptyForm = (): ShipmentFormState => ({
   siuntejas: emptyParty(),
   gavejas: emptyParty(),
   dydis: 'm',
   gavimoAdresas: '',
   siuntimoAdresas: '',
-  data: new Date().toISOString().slice(0, 10),
+  data: currentDateValue(),
   apmokamasPastomate: false,
   pastomatoSkyriausId: null,
 });
@@ -114,19 +120,29 @@ function buildLockerOptions(
   return [...byAddress.values()];
 }
 
-export function ShipmentsCrudView() {
+function formatReviewTimestamp(timestamp: string | null): string {
+  if (!timestamp) {
+    return '-';
+  }
+
+  return new Date(timestamp).toLocaleString('lt-LT');
+}
+
+export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: ShipmentsCrudViewProps) {
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [lockerOptions, setLockerOptions] = useState<LockerAddressOption[]>([]);
   const [form, setForm] = useState<ShipmentFormState>(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [paymentPreviewId, setPaymentPreviewId] = useState<number | null>(null);
+  const [reviewTimestamp, setReviewTimestamp] = useState<string | null>(null);
+  const [isReviewing, setIsReviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [lockerRefreshToken, setLockerRefreshToken] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
+    setIsLoading(true);
 
     const loadData = async () => {
       try {
@@ -162,18 +178,12 @@ export function ShipmentsCrudView() {
 
         setShipments(normalizeShipments(nextShipments));
         setLockerOptions(nextOptions);
-        setForm((current) => {
-          const siuntimoAdresas =
-            current.siuntimoAdresas || nextOptions[0]?.adresas || demoLocker?.adresas || '';
-          const gavimoAdresas =
-            current.gavimoAdresas || nextOptions[1]?.adresas || nextOptions[0]?.adresas || '';
-
-          return {
-            ...current,
-            siuntimoAdresas,
-            gavimoAdresas,
-          };
-        });
+        setForm((current) => ({
+          ...current,
+          siuntimoAdresas: current.siuntimoAdresas || nextOptions[0]?.adresas || '',
+          gavimoAdresas:
+            current.gavimoAdresas || nextOptions[1]?.adresas || nextOptions[0]?.adresas || '',
+        }));
         setError(null);
       } catch (loadError) {
         if (isMounted) {
@@ -191,7 +201,7 @@ export function ShipmentsCrudView() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [refreshToken]);
 
   const paymentPreviewShipment = useMemo(
     () => shipments.find((shipment) => shipment.id === paymentPreviewId) ?? null,
@@ -219,25 +229,33 @@ export function ShipmentsCrudView() {
       gavimoAdresas: current.gavimoAdresas || lockerOptions[1]?.adresas || lockerOptions[0]?.adresas || '',
     }));
     setEditingId(null);
+    setReviewTimestamp(null);
+    setIsReviewing(false);
   };
 
-  const handleShipmentUpsert = (shipment: Shipment) => {
-    setShipments((current) => upsertShipment(current, shipment));
-    setLockerRefreshToken((current) => current + 1);
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleEnterReview = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError(null);
+    setReviewTimestamp(new Date().toISOString());
+    setIsReviewing(true);
+  };
+
+  const handleSubmit = async () => {
     setIsSaving(true);
     setError(null);
 
     try {
+      const payload: ShipmentFormState = {
+        ...form,
+        data: reviewTimestamp?.slice(0, 10) ?? currentDateValue(),
+      };
       const savedShipment =
         editingId === null
-          ? await createShipment(form)
-          : await updateShipment(editingId, form);
+          ? await createShipment(payload)
+          : await updateShipment(editingId, payload);
 
-      handleShipmentUpsert(savedShipment);
+      setShipments((current) => upsertShipment(current, savedShipment));
+      onShipmentsChanged();
       resetForm();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Nepavyko issaugoti siuntos.');
@@ -252,7 +270,7 @@ export function ShipmentsCrudView() {
     try {
       await deleteShipment(shipmentId);
       setShipments((current) => current.filter((shipment) => shipment.id !== shipmentId));
-      setLockerRefreshToken((current) => current + 1);
+      onShipmentsChanged();
       if (editingId === shipmentId) {
         resetForm();
       }
@@ -271,7 +289,8 @@ export function ShipmentsCrudView() {
 
     try {
       const paidShipment = await payShipment(paymentPreviewShipment.id, 'internet');
-      handleShipmentUpsert(paidShipment);
+      setShipments((current) => upsertShipment(current, paidShipment));
+      onShipmentsChanged();
       setPaymentPreviewId(null);
       setError(null);
     } catch (paymentError) {
@@ -295,7 +314,7 @@ export function ShipmentsCrudView() {
 
       <div className="shipments-dashboard">
         <div className="shipments-main-column">
-          <form className="shipment-form-card shipment-checkout-card" onSubmit={handleSubmit}>
+          <form className="shipment-form-card shipment-checkout-card" onSubmit={handleEnterReview}>
             <div className="shipments-section-header">
               <div>
                 <p className="eyebrow">WebController</p>
@@ -304,168 +323,218 @@ export function ShipmentsCrudView() {
               <span className="counter-badge">{PRICE_BY_SIZE[form.dydis].toFixed(2)} EUR</span>
             </div>
 
-            <div className="checkout-section">
-              <div>
-                <p className="eyebrow">1 zingsnis</p>
-                <h4>Siuntejo kontaktai</h4>
+            <fieldset className="shipment-form-fieldset" disabled={isReviewing || isSaving}>
+              <div className="checkout-section">
+                <div>
+                  <p className="eyebrow">1 zingsnis</p>
+                  <h4>Siuntejo kontaktai</h4>
+                </div>
+                <div className="form-grid">
+                  <label>
+                    <span>Vardas</span>
+                    <input
+                      required
+                      value={form.siuntejas.vardas}
+                      onChange={(event) => setPartyField('siuntejas', 'vardas', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span>Pavarde</span>
+                    <input
+                      required
+                      value={form.siuntejas.pavarde}
+                      onChange={(event) => setPartyField('siuntejas', 'pavarde', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span>Telefono numeris</span>
+                    <input
+                      required
+                      value={form.siuntejas.telefonoNr}
+                      onChange={(event) => setPartyField('siuntejas', 'telefonoNr', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span>El. pastas</span>
+                    <input
+                      required
+                      type="email"
+                      value={form.siuntejas.elPastas}
+                      onChange={(event) => setPartyField('siuntejas', 'elPastas', event.target.value)}
+                    />
+                  </label>
+                </div>
               </div>
-              <div className="form-grid">
-                <label>
-                  <span>Vardas</span>
-                  <input
-                    required
-                    value={form.siuntejas.vardas}
-                    onChange={(event) => setPartyField('siuntejas', 'vardas', event.target.value)}
-                  />
-                </label>
-                <label>
-                  <span>Pavarde</span>
-                  <input
-                    required
-                    value={form.siuntejas.pavarde}
-                    onChange={(event) => setPartyField('siuntejas', 'pavarde', event.target.value)}
-                  />
-                </label>
-                <label>
-                  <span>Telefono numeris</span>
-                  <input
-                    required
-                    value={form.siuntejas.telefonoNr}
-                    onChange={(event) => setPartyField('siuntejas', 'telefonoNr', event.target.value)}
-                  />
-                </label>
-                <label>
-                  <span>El. pastas</span>
-                  <input
-                    required
-                    type="email"
-                    value={form.siuntejas.elPastas}
-                    onChange={(event) => setPartyField('siuntejas', 'elPastas', event.target.value)}
-                  />
-                </label>
-              </div>
-            </div>
 
-            <div className="checkout-section">
-              <div>
-                <p className="eyebrow">2 zingsnis</p>
-                <h4>Gavejo kontaktai</h4>
+              <div className="checkout-section">
+                <div>
+                  <p className="eyebrow">2 zingsnis</p>
+                  <h4>Gavejo kontaktai</h4>
+                </div>
+                <div className="form-grid">
+                  <label>
+                    <span>Vardas</span>
+                    <input
+                      required
+                      value={form.gavejas.vardas}
+                      onChange={(event) => setPartyField('gavejas', 'vardas', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span>Pavarde</span>
+                    <input
+                      required
+                      value={form.gavejas.pavarde}
+                      onChange={(event) => setPartyField('gavejas', 'pavarde', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span>Telefono numeris</span>
+                    <input
+                      required
+                      value={form.gavejas.telefonoNr}
+                      onChange={(event) => setPartyField('gavejas', 'telefonoNr', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span>El. pastas</span>
+                    <input
+                      required
+                      type="email"
+                      value={form.gavejas.elPastas}
+                      onChange={(event) => setPartyField('gavejas', 'elPastas', event.target.value)}
+                    />
+                  </label>
+                </div>
               </div>
-              <div className="form-grid">
-                <label>
-                  <span>Vardas</span>
-                  <input
-                    required
-                    value={form.gavejas.vardas}
-                    onChange={(event) => setPartyField('gavejas', 'vardas', event.target.value)}
-                  />
-                </label>
-                <label>
-                  <span>Pavarde</span>
-                  <input
-                    required
-                    value={form.gavejas.pavarde}
-                    onChange={(event) => setPartyField('gavejas', 'pavarde', event.target.value)}
-                  />
-                </label>
-                <label>
-                  <span>Telefono numeris</span>
-                  <input
-                    required
-                    value={form.gavejas.telefonoNr}
-                    onChange={(event) => setPartyField('gavejas', 'telefonoNr', event.target.value)}
-                  />
-                </label>
-                <label>
-                  <span>El. pastas</span>
-                  <input
-                    required
-                    type="email"
-                    value={form.gavejas.elPastas}
-                    onChange={(event) => setPartyField('gavejas', 'elPastas', event.target.value)}
-                  />
-                </label>
-              </div>
-            </div>
 
-            <div className="checkout-section">
-              <div>
-                <p className="eyebrow">3 zingsnis</p>
-                <h4>Paštomatai ir siuntos dydis</h4>
+              <div className="checkout-section">
+                <div>
+                  <p className="eyebrow">3 zingsnis</p>
+                  <h4>Pastomatai ir siuntos dydis</h4>
+                </div>
+                <div className="form-grid">
+                  <label>
+                    <span>Isiuntimo pastomatas</span>
+                    <select
+                      required
+                      value={form.siuntimoAdresas}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, siuntimoAdresas: event.target.value }))
+                      }
+                    >
+                      <option value="">Pasirinkite pastomata</option>
+                      {lockerOptions.map((locker) => (
+                        <option key={locker.id} value={locker.adresas}>
+                          {locker.adresas}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Atsiemimo pastomatas</span>
+                    <select
+                      required
+                      value={form.gavimoAdresas}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, gavimoAdresas: event.target.value }))
+                      }
+                    >
+                      <option value="">Pasirinkite pastomata</option>
+                      {lockerOptions.map((locker) => (
+                        <option key={locker.id} value={locker.adresas}>
+                          {locker.adresas}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="size-selector">
+                  {(['s', 'm', 'l'] as const).map((size) => (
+                    <button
+                      key={size}
+                      className={`size-card ${form.dydis === size ? 'active' : ''}`}
+                      type="button"
+                      onClick={() => setForm((current) => ({ ...current, dydis: size }))}
+                    >
+                      <strong>{size.toUpperCase()}</strong>
+                      <span>{PRICE_BY_SIZE[size].toFixed(2)} EUR</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="form-grid">
-                <label>
-                  <span>Isiuntimo pastomatas</span>
-                  <select
-                    required
-                    value={form.siuntimoAdresas}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, siuntimoAdresas: event.target.value }))
-                    }
-                  >
-                    <option value="">Pasirinkite pastomata</option>
-                    {lockerOptions.map((locker) => (
-                      <option key={locker.id} value={locker.adresas}>
-                        {locker.adresas}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span>Atsiemimo pastomatas</span>
-                  <select
-                    required
-                    value={form.gavimoAdresas}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, gavimoAdresas: event.target.value }))
-                    }
-                  >
-                    <option value="">Pasirinkite pastomata</option>
-                    {lockerOptions.map((locker) => (
-                      <option key={locker.id} value={locker.adresas}>
-                        {locker.adresas}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span>Registravimo data</span>
-                  <input
-                    required
-                    type="date"
-                    value={form.data}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, data: event.target.value }))
-                    }
-                  />
-                </label>
-              </div>
-              <div className="size-selector">
-                {(['s', 'm', 'l'] as const).map((size) => (
-                  <button
-                    key={size}
-                    className={`size-card ${form.dydis === size ? 'active' : ''}`}
-                    type="button"
-                    onClick={() => setForm((current) => ({ ...current, dydis: size }))}
-                  >
-                    <strong>{size.toUpperCase()}</strong>
-                    <span>{PRICE_BY_SIZE[size].toFixed(2)} EUR</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            </fieldset>
 
             <div className="checkout-summary">
               <div>
                 <p className="eyebrow">Apmokejimas internetu</p>
-                <h4>Mokama po registracijos</h4>
-                <span>Sistema sugeneruos mokejimo paskirti ir suma pagal pasirinkta dydi.</span>
+                <h4>{isReviewing ? 'Registracija paruosta patvirtinimui' : 'Mokama po registracijos'}</h4>
+                <span>
+                  Registravimo data ir laikas sugeneruojami automatiskai. Internetinei registracijai
+                  mokejimo duomenys bus sugeneruoti pagal pasirinkta dydi.
+                </span>
               </div>
-              <button className="primary-button" disabled={isSaving} type="submit">
-                {isSaving ? 'Registruojama...' : editingId === null ? 'Registruoti siunta' : 'Atnaujinti siunta'}
+              <button className="primary-button" disabled={isSaving || isReviewing} type="submit">
+                {isReviewing ? 'Perziura parengta' : editingId === null ? 'Perziureti registracija' : 'Perziureti pakeitimus'}
               </button>
             </div>
           </form>
+
+          {isReviewing ? (
+            <section className="shipment-form-card checkout-review-card">
+              <div className="shipments-section-header">
+                <div>
+                  <p className="eyebrow">Patvirtinimas</p>
+                  <h3>Registracijos perziura</h3>
+                </div>
+                <span className="counter-badge">{PRICE_BY_SIZE[form.dydis].toFixed(2)} EUR</span>
+              </div>
+
+              <div className="review-grid">
+                <div>
+                  <span>Registravimo laikas</span>
+                  <strong>{formatReviewTimestamp(reviewTimestamp)}</strong>
+                </div>
+                <div>
+                  <span>Registravimo budas</span>
+                  <strong>Internetu</strong>
+                </div>
+                <div>
+                  <span>Siuntejas</span>
+                  <strong>{form.siuntejas.vardas} {form.siuntejas.pavarde}</strong>
+                </div>
+                <div>
+                  <span>Gavejas</span>
+                  <strong>{form.gavejas.vardas} {form.gavejas.pavarde}</strong>
+                </div>
+                <div>
+                  <span>Siuntimo pastomatas</span>
+                  <strong>{form.siuntimoAdresas}</strong>
+                </div>
+                <div>
+                  <span>Atsiemimo pastomatas</span>
+                  <strong>{form.gavimoAdresas}</strong>
+                </div>
+                <div>
+                  <span>Dydis</span>
+                  <strong>{form.dydis.toUpperCase()}</strong>
+                </div>
+                <div>
+                  <span>Moketina suma</span>
+                  <strong>{PRICE_BY_SIZE[form.dydis].toFixed(2)} EUR</strong>
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <button className="secondary-button" type="button" onClick={() => setIsReviewing(false)}>
+                  Redaguoti
+                </button>
+                <button className="primary-button" disabled={isSaving} type="button" onClick={() => void handleSubmit()}>
+                  {isSaving ? 'Registruojama...' : editingId === null ? 'Patvirtinti registracija' : 'Patvirtinti pakeitimus'}
+                </button>
+              </div>
+            </section>
+          ) : null}
 
           <div className="shipments-content-grid">
             <section className="shipment-list-card payment-preview-card">
@@ -506,7 +575,9 @@ export function ShipmentsCrudView() {
                   </div>
                 </>
               ) : (
-                <p className="feedback">Pasirinkite registruota internetine siunta ir sugeneruosime mokejimo informacija.</p>
+                <p className="feedback">
+                  Pasirinkite registruota internetine siunta ir sugeneruosime mokejimo informacija.
+                </p>
               )}
             </section>
 
@@ -559,6 +630,8 @@ export function ShipmentsCrudView() {
                         onClick={() => {
                           setEditingId(shipment.id);
                           setForm(toFormState(shipment));
+                          setReviewTimestamp(null);
+                          setIsReviewing(false);
                         }}
                       >
                         Redaguoti
@@ -586,13 +659,6 @@ export function ShipmentsCrudView() {
             </section>
           </div>
         </div>
-
-        <LockerView
-          lockerOptions={lockerOptions}
-          refreshToken={lockerRefreshToken}
-          shipments={shipments}
-          onShipmentUpsert={handleShipmentUpsert}
-        />
       </div>
     </section>
   );
