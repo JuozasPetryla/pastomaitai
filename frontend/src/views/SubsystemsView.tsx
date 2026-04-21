@@ -5,6 +5,7 @@ import { UseCaseGrid } from '../components/UseCaseGrid';
 import { subsystems } from '../models/subsystemsCatalog';
 import type { Subsystem, SubsystemId } from '../models/subsystem';
 import { AdministrationView } from './AdministrationView';
+import { ShipmentsCrudView } from './ShipmentsCrudView';
 
 function getInitialSubsystem(): SubsystemId {
   const hash = window.location.hash.replace('#', '');
@@ -41,7 +42,7 @@ export function SubsystemsView() {
           </span>
           <div>
             <h1>Pastomatai</h1>
-            <p>Siuntų valdymo sistema</p>
+            <p>SiuntÅ³ valdymo sistema</p>
           </div>
         </div>
 
@@ -58,7 +59,10 @@ export function SubsystemsView() {
         {activeId === 'administration' ? (
           <AdministrationView />
         ) : (
-          <UseCaseGrid useCases={activeSubsystem.useCases} />
+          <>
+            <UseCaseGrid useCases={activeSubsystem.useCases} />
+            {activeSubsystem.id === 'shipments' ? <ShipmentsCrudView /> : null}
+          </>
         )}
       </section>
     </main>

@@ -166,36 +166,52 @@ button {
 
 .filter-bar {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px) auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px);
   gap: 12px;
   align-items: end;
 }
 
-.filter-bar label {
+.filter-bar label,
+.form-grid label,
+.checkbox-field {
   display: grid;
   gap: 6px;
-  color: #3e4a44;
-  font-weight: 700;
+  color: #314039;
+  font-weight: 600;
 }
 
-.filter-bar span {
-  font-size: 0.82rem;
+.filter-bar span,
+.form-grid span,
+.checkbox-field span {
+  font-size: 0.92rem;
 }
 
 .filter-bar input,
-.filter-bar select {
+.filter-bar select,
+.form-grid input,
+.form-grid select,
+.shipment-list-card select {
   min-height: 42px;
   width: 100%;
-  border: 1px solid #c8c5b8;
+  padding: 11px 12px;
+  border: 1px solid #cfc9b7;
   border-radius: 8px;
-  padding: 0 12px;
-  background: #ffffff;
-  color: #15201c;
+  background: #fff;
+  color: #18241f;
+}
+
+.admin-actions,
+.form-actions,
+.shipment-actions,
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .admin-actions button,
-.form-actions button,
-.locker-form header button {
+.locker-form header button,
+.locker-form .form-actions button {
   min-height: 42px;
   border: 0;
   border-radius: 8px;
@@ -206,16 +222,9 @@ button {
   cursor: pointer;
 }
 
-.admin-actions,
-.form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
 .admin-actions button:disabled,
-.form-actions button:last-child,
-.locker-form header button {
+.locker-form header button,
+.locker-form .form-actions button:last-child {
   background: #e6e1cf;
   color: #5e625c;
 }
@@ -248,29 +257,7 @@ button {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.form-grid label {
-  display: grid;
-  gap: 6px;
-  color: #3e4a44;
-  font-weight: 700;
-}
-
-.form-grid span {
-  font-size: 0.82rem;
-}
-
-.form-grid input,
-.form-grid select {
-  min-height: 42px;
-  width: 100%;
-  border: 1px solid #c8c5b8;
-  border-radius: 8px;
-  padding: 0 12px;
-  background: #ffffff;
-  color: #15201c;
+  gap: 14px;
 }
 
 .form-error {
@@ -318,9 +305,7 @@ button {
 }
 
 .modal-actions {
-  display: flex;
   justify-content: flex-end;
-  gap: 10px;
 }
 
 .modal-actions button {
@@ -456,6 +441,422 @@ button {
   font-weight: 800;
 }
 
+.shipments-panel {
+  display: grid;
+  gap: 20px;
+  max-width: 1380px;
+}
+
+.shipments-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 24px;
+}
+
+.shipments-main-column,
+.shipments-content-grid,
+.checkout-section {
+  display: grid;
+  gap: 18px;
+}
+
+.shipments-content-grid {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.shipment-checkout-card {
+  gap: 22px;
+}
+
+.checkout-section h4,
+.checkout-summary h4,
+.terminal-panel h4 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #16211d;
+}
+
+.checkout-summary {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f6f0dd 0%, #fffdfa 100%);
+}
+
+.checkout-summary span,
+.terminal-copy {
+  color: #56635d;
+  line-height: 1.45;
+}
+
+.size-selector {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.size-card {
+  display: grid;
+  gap: 6px;
+  min-height: 88px;
+  padding: 16px;
+  border: 1px solid #d6cfba;
+  border-radius: 12px;
+  background: #fff;
+  color: #16211d;
+  text-align: left;
+}
+
+.size-card.active {
+  border-color: #18241f;
+  background: #18241f;
+  color: #f8f6ed;
+}
+
+.payment-preview-card {
+  align-content: start;
+}
+
+.payment-details,
+.terminal-receipt,
+.terminal-stats {
+  display: grid;
+  gap: 10px;
+}
+
+.payment-details div,
+.terminal-receipt div,
+.terminal-stats div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebe4d0;
+}
+
+.payment-details span,
+.terminal-receipt span,
+.terminal-stats span {
+  color: #69746e;
+}
+
+.locker-terminal {
+  position: sticky;
+  top: 28px;
+  align-self: start;
+}
+
+.locker-terminal-shell {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #262624 0%, #171715 100%);
+  color: #f3f2ea;
+  box-shadow: 0 28px 70px rgb(15 18 14 / 28%);
+}
+
+.locker-terminal-topbar {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.locker-terminal-body {
+  display: grid;
+  gap: 16px;
+}
+
+.locker-screen {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top left, rgb(255 255 255 / 18%), transparent 32%),
+    linear-gradient(180deg, #eff6eb 0%, #dce7d7 100%);
+  color: #173025;
+  min-height: 680px;
+}
+
+.locker-screen-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #3d5f4d;
+}
+
+.terminal-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.terminal-form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.terminal-form-grid label {
+  display: grid;
+  gap: 6px;
+  color: #173025;
+  font-weight: 600;
+}
+
+.terminal-form-grid input,
+.terminal-form-grid select {
+  min-height: 40px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #b5c3b0;
+  border-radius: 10px;
+  background: #fbfdf8;
+  color: #173025;
+}
+
+.terminal-size-row,
+.terminal-cells,
+.locker-terminal-cells,
+.locker-hardware-buttons {
+  display: grid;
+  gap: 10px;
+}
+
+.terminal-size-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.terminal-size-button,
+.terminal-cell-button {
+  display: grid;
+  gap: 4px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid #b4bfae;
+  border-radius: 10px;
+  background: #fff;
+  color: #173025;
+  text-align: left;
+}
+
+.terminal-size-button.active,
+.terminal-cell-button.active {
+  border-color: #173025;
+  background: #173025;
+  color: #f8f6ed;
+}
+
+.locker-terminal-cells {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: auto;
+}
+
+.locker-cell {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #c7cfba;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 88%);
+}
+
+.locker-cell.free {
+  background: linear-gradient(180deg, #fffdf3 0%, #faf5df 100%);
+}
+
+.locker-cell.occupied {
+  background: linear-gradient(180deg, #eef5ef 0%, #deece0 100%);
+}
+
+.locker-cell.open {
+  border-color: #18241f;
+  box-shadow: inset 0 0 0 1px #18241f;
+}
+
+.locker-cell strong {
+  font-size: 1.05rem;
+}
+
+.locker-cell small {
+  color: #506058;
+}
+
+.locker-hardware-buttons {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.locker-hardware-buttons button {
+  min-height: 54px;
+  border: 1px solid #5b5a55;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #363631 0%, #20201d 100%);
+  color: #f2efe4;
+  font-weight: 700;
+}
+
+.locker-hardware-buttons button.active {
+  border-color: #f0cb55;
+  color: #f0cb55;
+}
+
+.shipments-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shipments-section-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #69746e;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shipment-form-card,
+.shipment-list-card {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid #d8d5c8;
+  border-radius: 12px;
+  background: #fffdfa;
+  box-shadow: 0 20px 40px rgb(24 36 31 / 8%);
+}
+
+.checkbox-field {
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: center;
+}
+
+.shipment-actions {
+  gap: 10px;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.primary-button:hover,
+.secondary-button:hover,
+.danger-button:hover {
+  transform: translateY(-1px);
+}
+
+.primary-button {
+  background: #18241f;
+  color: #f8f6ed;
+  box-shadow: 0 12px 26px rgb(24 36 31 / 18%);
+}
+
+.secondary-button {
+  background: #f7f3e8;
+  border-color: #d5ccb3;
+  color: #18241f;
+}
+
+.danger-button {
+  background: #fff1ef;
+  border-color: #edb0a7;
+  color: #8a2419;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled,
+.danger-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.counter-badge,
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #efe7cf;
+  color: #5d4c13;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.shipment-list {
+  display: grid;
+  gap: 14px;
+}
+
+.shipment-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #dfd7c3;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.shipment-card-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shipment-card-top strong {
+  font-size: 1rem;
+}
+
+.shipment-card-top p,
+.feedback {
+  margin: 0;
+  color: #65716a;
+}
+
+.shipment-meta {
+  display: grid;
+  gap: 6px;
+  color: #2b3932;
+  font-size: 0.95rem;
+}
+
+.feedback {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f0eee6;
+}
+
+.feedback-error {
+  background: #fff1ef;
+  color: #912d1d;
+}
+
+.feedback-success {
+  background: #edf8ef;
+  color: #1a5a27;
+}
+
 @media (max-width: 760px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -479,7 +880,12 @@ button {
 
   .filter-bar,
   .admin-grid,
-  .form-grid {
+  .shipments-dashboard,
+  .shipments-content-grid,
+  .form-grid,
+  .size-selector,
+  .terminal-size-row,
+  .locker-hardware-buttons {
     grid-template-columns: 1fr;
   }
 }
@@ -487,5 +893,9 @@ button {
 @media (max-width: 480px) {
   .subsystem-nav {
     grid-template-columns: 1fr;
+  }
+
+  .shipment-card-top {
+    flex-direction: column;
   }
 }
