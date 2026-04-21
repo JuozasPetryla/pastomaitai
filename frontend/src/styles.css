@@ -132,11 +132,15 @@ button {
 
 .workspace {
   display: grid;
-  align-content: start;
+  align-content: start; /* This aligns the grid rows to the top */
+  align-items: start;   /* This aligns items within their tracks to the top */
   gap: 28px;
   padding: 48px;
+  min-height: 100vh;    /* Force it to be at least the height of the screen */
 }
-
+.workspace > * {
+  align-self: start;
+}
 .workspace-header {
   display: grid;
   gap: 10px;
@@ -1025,7 +1029,8 @@ button {
 
 @media (max-width: 760px) {
   .app-shell {
-    grid-template-columns: 1fr;
+   display: flex;
+   align-items: stretch; /* Ensure children (sidebar & workspace) fill the height */
   }
 
   .sidebar {
