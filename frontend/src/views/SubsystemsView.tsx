@@ -7,6 +7,7 @@ import type { Subsystem, SubsystemId } from '../models/subsystem';
 import { AdministrationView } from './AdministrationView';
 import { LockerView } from './LockerView';
 import { ShipmentsCrudView } from './ShipmentsCrudView';
+import { NotificationView } from './NotificationView';
 
 function getInitialSubsystem(): SubsystemId {
   const hash = window.location.hash.replace('#', '');
@@ -72,6 +73,8 @@ export function SubsystemsView() {
 
         {activeId === 'administration' ? (
           <AdministrationView />
+        ) : activeId === 'notifications' ? (
+          <NotificationView />
         ) : (
           <>
             <UseCaseGrid useCases={activeSubsystem.useCases} />
