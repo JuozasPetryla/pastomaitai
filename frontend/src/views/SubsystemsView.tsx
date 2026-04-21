@@ -4,6 +4,7 @@ import { SubsystemNav } from '../components/SubsystemNav';
 import { UseCaseGrid } from '../components/UseCaseGrid';
 import { subsystems } from '../models/subsystemsCatalog';
 import type { Subsystem, SubsystemId } from '../models/subsystem';
+import { AdministrationView } from './AdministrationView';
 
 function getInitialSubsystem(): SubsystemId {
   const hash = window.location.hash.replace('#', '');
@@ -54,7 +55,11 @@ export function SubsystemsView() {
           <span>{activeSubsystem.description}</span>
         </header>
 
-        <UseCaseGrid useCases={activeSubsystem.useCases} />
+        {activeId === 'administration' ? (
+          <AdministrationView />
+        ) : (
+          <UseCaseGrid useCases={activeSubsystem.useCases} />
+        )}
       </section>
     </main>
   );
