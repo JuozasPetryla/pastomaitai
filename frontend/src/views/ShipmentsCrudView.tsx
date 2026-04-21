@@ -47,14 +47,16 @@ const emptyForm = (): ShipmentFormState => ({
 
 const statusLabels: Record<ShipmentStatus, string> = {
   parengta: 'Parengta',
-  apmoketa: 'Apmoketa',
-  uzregistruota: 'Uzregistruota',
-  ideta: 'Ideta i pastomata',
+  apmoketa: 'Apmokėta',
+  uzregistruota: 'Užregistruota',
+  ideta: 'Įdėta į paštomatą',
   tranzite: 'Tranzite',
   pristatyta: 'Pristatyta',
   atsiimta: 'Atsiimta',
-  atsaukta: 'Atsiimta / uzbaigta',
+  atsaukta: 'Atšaukta / užbaigta',
 };
+
+// --- Helper Functions ---
 
 function normalizeShipments(shipments: Shipment[]): Shipment[] {
   return [...shipments].sort((left, right) => right.id - left.id);
@@ -65,7 +67,6 @@ function upsertShipment(shipments: Shipment[], shipment: Shipment): Shipment[] {
   if (!existing) {
     return normalizeShipments([shipment, ...shipments]);
   }
-
   return normalizeShipments(
     shipments.map((item) => (item.id === shipment.id ? shipment : item)),
   );
@@ -73,18 +74,8 @@ function upsertShipment(shipments: Shipment[], shipment: Shipment): Shipment[] {
 
 function toFormState(shipment: Shipment): ShipmentFormState {
   return {
-    siuntejas: {
-      vardas: shipment.siuntejas.vardas,
-      pavarde: shipment.siuntejas.pavarde,
-      telefonoNr: shipment.siuntejas.telefonoNr,
-      elPastas: shipment.siuntejas.elPastas,
-    },
-    gavejas: {
-      vardas: shipment.gavejas.vardas,
-      pavarde: shipment.gavejas.pavarde,
-      telefonoNr: shipment.gavejas.telefonoNr,
-      elPastas: shipment.gavejas.elPastas,
-    },
+    siuntejas: { ...shipment.siuntejas },
+    gavejas: { ...shipment.gavejas },
     dydis: shipment.dydis,
     gavimoAdresas: shipment.gavimoAdresas,
     siuntimoAdresas: shipment.siuntimoAdresas,
@@ -99,34 +90,72 @@ function canPay(status: ShipmentStatus): boolean {
 }
 
 function buildPaymentSummary(shipment: Shipment): string {
-  return `Mokejimas uz siunta ${shipment.siuntosKodas}`;
+  return `Mokėjimas už siuntą ${shipment.siuntosKodas}`;
 }
 
 function buildPaymentReference(shipment: Shipment): string {
-  return shipment.saskaita ?? `MOKEJIMAS-${shipment.siuntosKodas}`;
+  return shipment.saskaita ?? `MOKĖJIMAS-${shipment.siuntosKodas}`;
 }
 
 function buildLockerOptions(
   addresses: Array<{ id: string; adresas: string; produktoKodas: string; yraDemo?: boolean }>,
 ): LockerAddressOption[] {
   const byAddress = new Map<string, LockerAddressOption>();
-
   for (const address of addresses) {
     if (!byAddress.has(address.adresas)) {
       byAddress.set(address.adresas, address);
     }
   }
-
   return [...byAddress.values()];
 }
 
 function formatReviewTimestamp(timestamp: string | null): string {
-  if (!timestamp) {
-    return '-';
-  }
-
+  if (!timestamp) return '-';
   return new Date(timestamp).toLocaleString('lt-LT');
 }
+
+// --- Sub-Components ---
+
+function ContactSection({
+  step,
+  title,
+  party,
+  onChange,
+}: {
+  step: string;
+  title: string;
+  party: ShipmentPartyInput;
+  onChange: (field: keyof ShipmentPartyInput, value: string) => void;
+}) {
+  return (
+    <div className="checkout-section">
+      <div>
+        <p className="eyebrow">{step}</p>
+        <h4>{title}</h4>
+      </div>
+      <div className="form-grid">
+        <label>
+          <span>Vardas</span>
+          <input required value={party.vardas} onChange={(e) => onChange('vardas', e.target.value)} />
+        </label>
+        <label>
+          <span>Pavardė</span>
+          <input required value={party.pavarde} onChange={(e) => onChange('pavarde', e.target.value)} />
+        </label>
+        <label>
+          <span>Telefono numeris</span>
+          <input required value={party.telefonoNr} onChange={(e) => onChange('telefonoNr', e.target.value)} />
+        </label>
+        <label>
+          <span>El. paštas</span>
+          <input required type="email" value={party.elPastas} onChange={(e) => onChange('elPastas', e.target.value)} />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+// --- Main Component ---
 
 export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: ShipmentsCrudViewProps) {
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -152,9 +181,7 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
           fetchDemoLockerState().catch(() => null),
         ]);
 
-        if (!isMounted) {
-          return;
-        }
+        if (!isMounted) return;
 
         const nextOptions = buildLockerOptions([
           ...pastomatai
@@ -181,18 +208,13 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
         setForm((current) => ({
           ...current,
           siuntimoAdresas: current.siuntimoAdresas || nextOptions[0]?.adresas || '',
-          gavimoAdresas:
-            current.gavimoAdresas || nextOptions[1]?.adresas || nextOptions[0]?.adresas || '',
+          gavimoAdresas: current.gavimoAdresas || nextOptions[1]?.adresas || nextOptions[0]?.adresas || '',
         }));
         setError(null);
       } catch (loadError) {
-        if (isMounted) {
-          setError(loadError instanceof Error ? loadError.message : 'Nepavyko gauti duomenu.');
-        }
+        if (isMounted) setError(loadError instanceof Error ? loadError.message : 'Nepavyko gauti duomenų.');
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     };
 
@@ -208,17 +230,10 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
     [paymentPreviewId, shipments],
   );
 
-  const setPartyField = (
-    side: 'siuntejas' | 'gavejas',
-    field: keyof ShipmentPartyInput,
-    value: string,
-  ) => {
+  const setPartyField = (side: 'siuntejas' | 'gavejas', field: keyof ShipmentPartyInput, value: string) => {
     setForm((current) => ({
       ...current,
-      [side]: {
-        ...current[side],
-        [field]: value,
-      },
+      [side]: { ...current[side], [field]: value },
     }));
   };
 
@@ -250,15 +265,13 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
         data: reviewTimestamp?.slice(0, 10) ?? currentDateValue(),
       };
       const savedShipment =
-        editingId === null
-          ? await createShipment(payload)
-          : await updateShipment(editingId, payload);
+        editingId === null ? await createShipment(payload) : await updateShipment(editingId, payload);
 
       setShipments((current) => upsertShipment(current, savedShipment));
       onShipmentsChanged();
       resetForm();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Nepavyko issaugoti siuntos.');
+      setError(submitError instanceof Error ? submitError.message : 'Nepavyko išsaugoti siuntos.');
     } finally {
       setIsSaving(false);
     }
@@ -266,26 +279,19 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
 
   const handleDelete = async (shipmentId: number) => {
     setError(null);
-
     try {
       await deleteShipment(shipmentId);
       setShipments((current) => current.filter((shipment) => shipment.id !== shipmentId));
       onShipmentsChanged();
-      if (editingId === shipmentId) {
-        resetForm();
-      }
-      if (paymentPreviewId === shipmentId) {
-        setPaymentPreviewId(null);
-      }
+      if (editingId === shipmentId) resetForm();
+      if (paymentPreviewId === shipmentId) setPaymentPreviewId(null);
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : 'Nepavyko istrinti siuntos.');
+      setError(deleteError instanceof Error ? deleteError.message : 'Nepavyko ištrinti siuntos.');
     }
   };
 
   const handleInternetPayment = async () => {
-    if (!paymentPreviewShipment) {
-      return;
-    }
+    if (!paymentPreviewShipment) return;
 
     try {
       const paidShipment = await payShipment(paymentPreviewShipment.id, 'internet');
@@ -294,7 +300,7 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
       setPaymentPreviewId(null);
       setError(null);
     } catch (paymentError) {
-      setError(paymentError instanceof Error ? paymentError.message : 'Nepavyko apmoketi internetu.');
+      setError(paymentError instanceof Error ? paymentError.message : 'Nepavyko apmokėti internetu.');
     }
   };
 
@@ -302,8 +308,8 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
     <section className="shipments-panel" aria-labelledby="shipments-demo-title">
       <div className="shipments-section-header">
         <div>
-          <p className="eyebrow">Siuntu savitarna</p>
-          <h3 id="shipments-demo-title">Registracija internetu ir siuntu valdymas</h3>
+          <p className="eyebrow">Siuntų savitarna</p>
+          <h3 id="shipments-demo-title">Registracija internetu ir siuntų valdymas</h3>
         </div>
         <button className="secondary-button" type="button" onClick={resetForm}>
           Nauja siunta
@@ -324,106 +330,34 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
             </div>
 
             <fieldset className="shipment-form-fieldset" disabled={isReviewing || isSaving}>
-              <div className="checkout-section">
-                <div>
-                  <p className="eyebrow">1 zingsnis</p>
-                  <h4>Siuntejo kontaktai</h4>
-                </div>
-                <div className="form-grid">
-                  <label>
-                    <span>Vardas</span>
-                    <input
-                      required
-                      value={form.siuntejas.vardas}
-                      onChange={(event) => setPartyField('siuntejas', 'vardas', event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    <span>Pavarde</span>
-                    <input
-                      required
-                      value={form.siuntejas.pavarde}
-                      onChange={(event) => setPartyField('siuntejas', 'pavarde', event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    <span>Telefono numeris</span>
-                    <input
-                      required
-                      value={form.siuntejas.telefonoNr}
-                      onChange={(event) => setPartyField('siuntejas', 'telefonoNr', event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    <span>El. pastas</span>
-                    <input
-                      required
-                      type="email"
-                      value={form.siuntejas.elPastas}
-                      onChange={(event) => setPartyField('siuntejas', 'elPastas', event.target.value)}
-                    />
-                  </label>
-                </div>
-              </div>
+              <ContactSection
+                step="1 žingsnis"
+                title="Siuntėjo kontaktai"
+                party={form.siuntejas}
+                onChange={(field, value) => setPartyField('siuntejas', field, value)}
+              />
+
+              <ContactSection
+                step="2 žingsnis"
+                title="Gavėjo kontaktai"
+                party={form.gavejas}
+                onChange={(field, value) => setPartyField('gavejas', field, value)}
+              />
 
               <div className="checkout-section">
                 <div>
-                  <p className="eyebrow">2 zingsnis</p>
-                  <h4>Gavejo kontaktai</h4>
+                  <p className="eyebrow">3 žingsnis</p>
+                  <h4>Paštomatai ir siuntos dydis</h4>
                 </div>
                 <div className="form-grid">
                   <label>
-                    <span>Vardas</span>
-                    <input
-                      required
-                      value={form.gavejas.vardas}
-                      onChange={(event) => setPartyField('gavejas', 'vardas', event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    <span>Pavarde</span>
-                    <input
-                      required
-                      value={form.gavejas.pavarde}
-                      onChange={(event) => setPartyField('gavejas', 'pavarde', event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    <span>Telefono numeris</span>
-                    <input
-                      required
-                      value={form.gavejas.telefonoNr}
-                      onChange={(event) => setPartyField('gavejas', 'telefonoNr', event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    <span>El. pastas</span>
-                    <input
-                      required
-                      type="email"
-                      value={form.gavejas.elPastas}
-                      onChange={(event) => setPartyField('gavejas', 'elPastas', event.target.value)}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className="checkout-section">
-                <div>
-                  <p className="eyebrow">3 zingsnis</p>
-                  <h4>Pastomatai ir siuntos dydis</h4>
-                </div>
-                <div className="form-grid">
-                  <label>
-                    <span>Isiuntimo pastomatas</span>
+                    <span>Išsiuntimo paštomatas</span>
                     <select
                       required
                       value={form.siuntimoAdresas}
-                      onChange={(event) =>
-                        setForm((current) => ({ ...current, siuntimoAdresas: event.target.value }))
-                      }
+                      onChange={(e) => setForm((current) => ({ ...current, siuntimoAdresas: e.target.value }))}
                     >
-                      <option value="">Pasirinkite pastomata</option>
+                      <option value="">Pasirinkite paštomatą</option>
                       {lockerOptions.map((locker) => (
                         <option key={locker.id} value={locker.adresas}>
                           {locker.adresas}
@@ -432,15 +366,13 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
                     </select>
                   </label>
                   <label>
-                    <span>Atsiemimo pastomatas</span>
+                    <span>Atsiėmimo paštomatas</span>
                     <select
                       required
                       value={form.gavimoAdresas}
-                      onChange={(event) =>
-                        setForm((current) => ({ ...current, gavimoAdresas: event.target.value }))
-                      }
+                      onChange={(e) => setForm((current) => ({ ...current, gavimoAdresas: e.target.value }))}
                     >
-                      <option value="">Pasirinkite pastomata</option>
+                      <option value="">Pasirinkite paštomatą</option>
                       {lockerOptions.map((locker) => (
                         <option key={locker.id} value={locker.adresas}>
                           {locker.adresas}
@@ -467,25 +399,25 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
 
             <div className="checkout-summary">
               <div>
-                <p className="eyebrow">Apmokejimas internetu</p>
-                <h4>{isReviewing ? 'Registracija paruosta patvirtinimui' : 'Mokama po registracijos'}</h4>
+                <p className="eyebrow">Apmokėjimas internetu</p>
+                <h4>{isReviewing ? 'Registracija paruošta patvirtinimui' : 'Mokama po registracijos'}</h4>
                 <span>
-                  Registravimo data ir laikas sugeneruojami automatiskai. Internetinei registracijai
-                  mokejimo duomenys bus sugeneruoti pagal pasirinkta dydi.
+                  Registravimo data ir laikas sugeneruojami automatiškai. Internetinei registracijai
+                  mokėjimo duomenys bus sugeneruoti pagal pasirinktą dydį.
                 </span>
               </div>
               <button className="primary-button" disabled={isSaving || isReviewing} type="submit">
-                {isReviewing ? 'Perziura parengta' : editingId === null ? 'Perziureti registracija' : 'Perziureti pakeitimus'}
+                {isReviewing ? 'Peržiūra parengta' : editingId === null ? 'Peržiūrėti registraciją' : 'Peržiūrėti pakeitimus'}
               </button>
             </div>
           </form>
 
-          {isReviewing ? (
+          {isReviewing && (
             <section className="shipment-form-card checkout-review-card">
               <div className="shipments-section-header">
                 <div>
                   <p className="eyebrow">Patvirtinimas</p>
-                  <h3>Registracijos perziura</h3>
+                  <h3>Registracijos peržiūra</h3>
                 </div>
                 <span className="counter-badge">{PRICE_BY_SIZE[form.dydis].toFixed(2)} EUR</span>
               </div>
@@ -496,23 +428,23 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
                   <strong>{formatReviewTimestamp(reviewTimestamp)}</strong>
                 </div>
                 <div>
-                  <span>Registravimo budas</span>
+                  <span>Registravimo būdas</span>
                   <strong>Internetu</strong>
                 </div>
                 <div>
-                  <span>Siuntejas</span>
+                  <span>Siuntėjas</span>
                   <strong>{form.siuntejas.vardas} {form.siuntejas.pavarde}</strong>
                 </div>
                 <div>
-                  <span>Gavejas</span>
+                  <span>Gavėjas</span>
                   <strong>{form.gavejas.vardas} {form.gavejas.pavarde}</strong>
                 </div>
                 <div>
-                  <span>Siuntimo pastomatas</span>
+                  <span>Siuntimo paštomatas</span>
                   <strong>{form.siuntimoAdresas}</strong>
                 </div>
                 <div>
-                  <span>Atsiemimo pastomatas</span>
+                  <span>Atsiėmimo paštomatas</span>
                   <strong>{form.gavimoAdresas}</strong>
                 </div>
                 <div>
@@ -520,7 +452,7 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
                   <strong>{form.dydis.toUpperCase()}</strong>
                 </div>
                 <div>
-                  <span>Moketina suma</span>
+                  <span>Mokėtina suma</span>
                   <strong>{PRICE_BY_SIZE[form.dydis].toFixed(2)} EUR</strong>
                 </div>
               </div>
@@ -530,18 +462,18 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
                   Redaguoti
                 </button>
                 <button className="primary-button" disabled={isSaving} type="button" onClick={() => void handleSubmit()}>
-                  {isSaving ? 'Registruojama...' : editingId === null ? 'Patvirtinti registracija' : 'Patvirtinti pakeitimus'}
+                  {isSaving ? 'Registruojama...' : editingId === null ? 'Patvirtinti registraciją' : 'Patvirtinti pakeitimus'}
                 </button>
               </div>
             </section>
-          ) : null}
+          )}
 
           <div className="shipments-content-grid">
             <section className="shipment-list-card payment-preview-card">
               <div className="shipments-section-header">
                 <div>
-                  <p className="eyebrow">Apmokejimo langas</p>
-                  <h3>Internetinis mokejimas</h3>
+                  <p className="eyebrow">Apmokėjimo langas</p>
+                  <h3>Internetinis mokėjimas</h3>
                 </div>
               </div>
 
@@ -549,34 +481,34 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
                 <>
                   <div className="payment-details">
                     <div>
-                      <span>Mokejimo gavejas</span>
-                      <strong>Pastomatai UAB</strong>
+                      <span>Mokėjimo gavėjas</span>
+                      <strong>Paštomatai UAB</strong>
                     </div>
                     <div>
-                      <span>Mokejimo paskirtis</span>
+                      <span>Mokėjimo paskirtis</span>
                       <strong>{buildPaymentSummary(paymentPreviewShipment)}</strong>
                     </div>
                     <div>
-                      <span>Imokos kodas</span>
+                      <span>Įmokos kodas</span>
                       <strong>{buildPaymentReference(paymentPreviewShipment)}</strong>
                     </div>
                     <div>
-                      <span>Moketina suma</span>
+                      <span>Mokėtina suma</span>
                       <strong>{paymentPreviewShipment.suma.toFixed(2)} EUR</strong>
                     </div>
                   </div>
                   <div className="form-actions">
                     <button className="primary-button" type="button" onClick={() => void handleInternetPayment()}>
-                      Patvirtinti mokejima
+                      Patvirtinti mokėjimą
                     </button>
                     <button className="secondary-button" type="button" onClick={() => setPaymentPreviewId(null)}>
-                      Uzdaryti
+                      Uždaryti
                     </button>
                   </div>
                 </>
               ) : (
                 <p className="feedback">
-                  Pasirinkite registruota internetine siunta ir sugeneruosime mokejimo informacija.
+                  Pasirinkite registruotą internetinę siuntą ir sugeneruosime mokėjimo informaciją.
                 </p>
               )}
             </section>
@@ -590,11 +522,11 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
                 <span className="counter-badge">{shipments.length}</span>
               </div>
 
-              {isLoading ? <p className="feedback">Kraunamos siuntos...</p> : null}
+              {isLoading && <p className="feedback">Kraunamos siuntos...</p>}
 
-              {!isLoading && shipments.length === 0 ? (
-                <p className="feedback">Kol kas nera nei vienos siuntos.</p>
-              ) : null}
+              {!isLoading && shipments.length === 0 && (
+                <p className="feedback">Kol kas nėra nei vienos siuntos.</p>
+              )}
 
               <div className="shipment-list">
                 {shipments.map((shipment) => (
@@ -602,7 +534,7 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
                     <div className="shipment-card-top">
                       <div>
                         <strong>{shipment.siuntosKodas}</strong>
-                        <p>Uzsakymas #{shipment.uzsakymoNr}</p>
+                        <p>Užsakymas #{shipment.uzsakymoNr}</p>
                       </div>
                       <span className="status-pill">{statusLabels[shipment.busena]}</span>
                     </div>
@@ -619,7 +551,7 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
                         Dydis {shipment.dydis.toUpperCase()} | Suma {shipment.suma.toFixed(2)} EUR
                       </span>
                       <span>
-                        Registracija: {shipment.apmokamasPastomate ? 'pastomate' : 'internetu'}
+                        Registracija: {shipment.apmokamasPastomate ? 'paštomate' : 'internetu'}
                       </span>
                     </div>
 
@@ -636,15 +568,15 @@ export function ShipmentsCrudView({ refreshToken, onShipmentsChanged }: Shipment
                       >
                         Redaguoti
                       </button>
-                      {!shipment.apmokamasPastomate && canPay(shipment.busena) ? (
+                      {!shipment.apmokamasPastomate && canPay(shipment.busena) && (
                         <button
                           className="secondary-button"
                           type="button"
                           onClick={() => setPaymentPreviewId(shipment.id)}
                         >
-                          Moketi internetu
+                          Mokėti internetu
                         </button>
-                      ) : null}
+                      )}
                       <button
                         className="danger-button"
                         type="button"
