@@ -23,6 +23,8 @@ button {
 
 .app-shell {
   display: grid;
+  /* Change this to stretch so the sidebar and workspace fill the page height */
+  align-items: stretch; 
   grid-template-columns: minmax(260px, 320px) 1fr;
   min-height: 100vh;
 }
@@ -30,11 +32,12 @@ button {
 .sidebar {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 32px;
   padding: 28px;
   background: #18241f;
   color: #f8f6ed;
+  height: 100%;
 }
 
 .brand {
@@ -78,6 +81,7 @@ button {
 }
 
 .sidebar-tools {
+  margin-top: auto;
   display: grid;
   gap: 12px;
 }
