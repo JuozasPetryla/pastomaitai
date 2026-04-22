@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.controllers.administration_controller import router as administration_router
-from app.controllers.locker_controller import router as locker_router
 from app.controllers.shipments_controller import router as shipments_router
 from app.controllers.subsystems_controller import router as subsystems_router
 from app.controllers.notifications_controller import router as notifications_router
@@ -28,6 +27,5 @@ async def health() -> dict[str, str]:
 app.include_router(subsystems_router, prefix="/api")
 app.include_router(administration_router, prefix="/api")
 app.include_router(shipments_router, prefix="/api")
-app.include_router(locker_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api")
 app.include_router(courier_router, prefix="/api")

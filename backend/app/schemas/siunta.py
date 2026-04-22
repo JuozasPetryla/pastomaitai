@@ -1,6 +1,5 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -47,8 +46,17 @@ class ShipmentUpdate(BaseModel):
     busena: SiuntosBusena | None = None
 
 
-class ShipmentPaymentRequest(BaseModel):
-    budas: Literal["internet", "pastomatas"] = "internet"
+class ShipmentListItem(BaseModel):
+    id: int
+    siuntos_kodas: str
+    busena: SiuntosBusena
+    dydis: SiuntosDydis
+    siuntimo_adresas: str
+    gavimo_adresas: str
+    data: date
+    created_at: datetime
+    siuntejas: str
+    gavejas: str
 
 
 class ShipmentResponse(BaseModel):

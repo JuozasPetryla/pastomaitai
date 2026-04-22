@@ -9,7 +9,6 @@ export type ShipmentStatus =
   | 'atsaukta';
 
 export type ShipmentSize = 's' | 'm' | 'l';
-export type PaymentMethod = 'internet' | 'pastomatas';
 
 export type ShipmentParty = {
   asmuoId: number;
@@ -20,6 +19,19 @@ export type ShipmentParty = {
 };
 
 export type ShipmentPartyInput = Omit<ShipmentParty, 'asmuoId'>;
+
+export type ShipmentListItem = {
+  id: number;
+  siuntosKodas: string;
+  busena: ShipmentStatus;
+  dydis: ShipmentSize;
+  siuntimoAdresas: string;
+  gavimoAdresas: string;
+  data: string;
+  createdAt: string;
+  siuntejas: string;
+  gavejas: string;
+};
 
 export type Shipment = {
   id: number;
@@ -40,7 +52,12 @@ export type Shipment = {
   gavejas: ShipmentParty;
 };
 
-export type ShipmentUpsert = {
+export type ShipmentFilters = {
+  siuntosKodas: string;
+  busena: ShipmentStatus | '';
+};
+
+export type ShipmentCreatePayload = {
   siuntejas: ShipmentPartyInput;
   gavejas: ShipmentPartyInput;
   dydis: ShipmentSize;
@@ -48,5 +65,8 @@ export type ShipmentUpsert = {
   siuntimoAdresas: string;
   data?: string;
   apmokamasPastomate: boolean;
-  pastomatoSkyriausId: number | null;
+};
+
+export type ShipmentUpdatePayload = Partial<ShipmentCreatePayload> & {
+  busena?: ShipmentStatus;
 };

@@ -13,7 +13,7 @@ from app.schemas.asmuo import (
 )
 
 
-async def list_darbuotojai(
+async def list_couriers(
     session: AsyncSession,
     *,
     pareigos: DarbuotojoPareigos | None = None,
@@ -40,6 +40,14 @@ async def list_darbuotojai(
         )
         for darbuotojas in result.all()
     ]
+
+
+async def list_darbuotojai(
+    session: AsyncSession,
+    *,
+    pareigos: DarbuotojoPareigos | None = None,
+) -> list[DarbuotojasListItem]:
+    return await list_couriers(session, pareigos=pareigos)
 
 
 async def get_courier(session: AsyncSession, courier_id: int) -> DarbuotojasRead:

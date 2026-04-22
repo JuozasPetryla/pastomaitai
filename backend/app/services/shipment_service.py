@@ -10,9 +10,9 @@ from app.models.asmuo import Asmuo, Gavejas, Siuntejas
 from app.models.siunta import Siunta, SiuntosBusena
 from app.schemas.siunta import (
     ShipmentCreate,
+    ShipmentListItem,
     ShipmentPartyBase,
     ShipmentPartyResponse,
-    ShipmentPaymentRequest,
     ShipmentResponse,
     ShipmentUpdate,
 )
@@ -63,14 +63,6 @@ def _to_shipment_response(shipment: Siunta) -> ShipmentResponse:
     )
 
 
-def shipment_to_response(shipment: Siunta) -> ShipmentResponse:
-    return _to_shipment_response(shipment)
-
-
-def calculate_shipment_price(size: str) -> Decimal:
-    return PRICE_BY_SIZE[size]
-
-
 async def _commit_or_409(session: AsyncSession) -> None:
     try:
         await session.commit()
@@ -80,10 +72,6 @@ async def _commit_or_409(session: AsyncSession) -> None:
             status_code=status.HTTP_409_CONFLICT,
             detail="Nepavyko issaugoti siuntos. Patikrinkite unikalius laukus ir susijusius ID.",
         ) from exc
-
-
-async def commit_session(session: AsyncSession) -> None:
-    await _commit_or_409(session)
 
 
 async def _get_or_create_party(
@@ -126,11 +114,7 @@ async def _next_order_number(session: AsyncSession) -> int:
 
 
 async def _get_shipment_model(session: AsyncSession, shipment_id: int) -> Siunta:
-    query = (
-        select(Siunta)
-        .options(*_shipment_load_options())
-        .where(Siunta.id == shipment_id)
-    )
+    query = select(Siunta).options(*_shipment_load_options()).where(Siunta.id == shipment_id)
     shipment = (await session.execute(query)).scalar_one_or_none()
 
     if shipment is None:
@@ -139,53 +123,47 @@ async def _get_shipment_model(session: AsyncSession, shipment_id: int) -> Siunta
     return shipment
 
 
-async def get_shipment_record(session: AsyncSession, shipment_id: int) -> Siunta:
-    return await _get_shipment_model(session, shipment_id)
+async def list_shipments(
+    session: AsyncSession,
+    *,
+    siuntos_kodas: str | None = None,
+    busena: SiuntosBusena | None = None,
+) -> list[ShipmentListItem]:
+    query = select(Siunta).options(*_shipment_load_options())
 
+    if siuntos_kodas:
+        query = query.where(Siunta.siuntos_kodas.ilike(f"%{siuntos_kodas}%"))
 
-async def get_shipment_by_code_record(session: AsyncSession, shipment_code: str) -> Siunta:
-    query = (
-        select(Siunta)
-        .options(*_shipment_load_options())
-        .where(Siunta.siuntos_kodas == shipment_code)
-    )
-    shipment = (await session.execute(query)).scalar_one_or_none()
+    if busena is not None:
+        query = query.where(Siunta.busena == busena)
 
-    if shipment is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Siunta nerasta.")
-
-    return shipment
-
-
-def _ensure_status(
-    shipment: Siunta,
-    allowed_statuses: set[SiuntosBusena],
-    action_name: str,
-) -> None:
-    if shipment.busena not in allowed_statuses:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Siuntos nepavyko {action_name}. Dabartine busena: {shipment.busena.value}.",
-        )
-
-
-def ensure_shipment_status(
-    shipment: Siunta,
-    allowed_statuses: set[SiuntosBusena],
-    action_name: str,
-) -> None:
-    _ensure_status(shipment, allowed_statuses, action_name)
-
-
-async def list_shipments(session: AsyncSession) -> list[ShipmentResponse]:
-    query = select(Siunta).options(*_shipment_load_options()).order_by(Siunta.created_at.desc())
+    query = query.order_by(Siunta.created_at.desc())
     shipments = (await session.execute(query)).scalars().all()
-    return [_to_shipment_response(shipment) for shipment in shipments]
+
+    return [
+        ShipmentListItem(
+            id=shipment.id,
+            siuntos_kodas=shipment.siuntos_kodas,
+            busena=shipment.busena,
+            dydis=shipment.dydis,
+            siuntimo_adresas=shipment.siuntimo_adresas,
+            gavimo_adresas=shipment.gavimo_adresas,
+            data=shipment.data,
+            created_at=shipment.created_at,
+            siuntejas=f"{shipment.siuntejas.asmuo.vardas} {shipment.siuntejas.asmuo.pavarde}",
+            gavejas=f"{shipment.gavejas.asmuo.vardas} {shipment.gavejas.asmuo.pavarde}",
+        )
+        for shipment in shipments
+    ]
 
 
 async def get_shipment(session: AsyncSession, shipment_id: int) -> ShipmentResponse:
     shipment = await _get_shipment_model(session, shipment_id)
     return _to_shipment_response(shipment)
+
+
+def calculate_shipment_price(size: str) -> Decimal:
+    return PRICE_BY_SIZE[size]
 
 
 async def create_shipment(session: AsyncSession, payload: ShipmentCreate) -> ShipmentResponse:
@@ -245,52 +223,3 @@ async def delete_shipment(session: AsyncSession, shipment_id: int) -> None:
     shipment = await _get_shipment_model(session, shipment_id)
     await session.delete(shipment)
     await _commit_or_409(session)
-
-
-async def pay_shipment(
-    session: AsyncSession,
-    shipment_id: int,
-    payload: ShipmentPaymentRequest,
-) -> ShipmentResponse:
-    shipment = await _get_shipment_model(session, shipment_id)
-    _ensure_status(
-        shipment,
-        {SiuntosBusena.uzregistruota, SiuntosBusena.parengta},
-        "apmoketi",
-    )
-    shipment.apmokamas_pastomate = payload.budas == "pastomatas"
-    shipment.busena = SiuntosBusena.apmoketa
-    await _commit_or_409(session)
-    return await get_shipment(session, shipment.id)
-
-
-async def dispatch_shipment(session: AsyncSession, shipment_id: int) -> ShipmentResponse:
-    shipment = await _get_shipment_model(session, shipment_id)
-    _ensure_status(
-        shipment,
-        {SiuntosBusena.uzregistruota, SiuntosBusena.apmoketa},
-        "issiusti",
-    )
-    shipment.busena = SiuntosBusena.ideta
-    await _commit_or_409(session)
-    return await get_shipment(session, shipment.id)
-
-
-async def deliver_shipment(session: AsyncSession, shipment_id: int) -> ShipmentResponse:
-    shipment = await _get_shipment_model(session, shipment_id)
-    _ensure_status(shipment, {SiuntosBusena.ideta, SiuntosBusena.tranzite}, "pristatyti")
-    shipment.busena = SiuntosBusena.pristatyta
-    await _commit_or_409(session)
-    return await get_shipment(session, shipment.id)
-
-
-async def pickup_shipment(session: AsyncSession, shipment_id: int) -> ShipmentResponse:
-    shipment = await _get_shipment_model(session, shipment_id)
-    _ensure_status(
-        shipment,
-        {SiuntosBusena.ideta, SiuntosBusena.pristatyta},
-        "atsiimti",
-    )
-    shipment.busena = SiuntosBusena.atsiimta
-    await _commit_or_409(session)
-    return await get_shipment(session, shipment.id)
