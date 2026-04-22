@@ -2,8 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.pastomatas import PastomatoBusena
-from app.models.siunta import SiuntosDydis
+from app.models.locker import PastomatoBusena
+from app.models.shipment import SiuntosDydis
 
 
 class PastomatoSkyriusRead(BaseModel):

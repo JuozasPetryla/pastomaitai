@@ -1,4 +1,4 @@
-import type { LockerFilters, LockerStatus } from '../models/pastomatas';
+import type { LockerFilters, LockerStatus } from '../models/locker';
 
 const statuses: Array<{ value: LockerStatus | ''; label: string }> = [
   { value: '', label: 'All statuses' },

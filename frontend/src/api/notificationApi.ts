@@ -5,7 +5,7 @@ import type {
   NotificationListItem,
   NotificationType,
   NotificationUpdatePayload,
-} from '../models/pranesimas';
+} from '../models/notification';
 
 type ApiNotificationType = 'sms' | 'el_pastas';
 

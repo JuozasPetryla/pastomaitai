@@ -1,4 +1,4 @@
-import type { Notification } from '../models/pranesimas';
+import type { Notification } from '../models/notification';
 
 type NotificationDetailsProps = {
   notification?: Notification;

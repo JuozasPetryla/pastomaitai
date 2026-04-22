@@ -6,9 +6,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.asmuo import Asmuo, Gavejas, Siuntejas
-from app.models.siunta import Siunta, SiuntosBusena
-from app.schemas.siunta import (
+from app.models.person import Asmuo, Gavejas, Siuntejas
+from app.models.shipment import Siunta, SiuntosBusena
+from app.schemas.shipment import (
     ShipmentCreate,
     ShipmentListItem,
     ShipmentPartyBase,

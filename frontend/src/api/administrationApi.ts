@@ -6,7 +6,7 @@ import type {
   LockerUpdatePayload,
   LockerStatus,
   LockerCellSize,
-} from '../models/pastomatas';
+} from '../models/locker';
 
 type ApiLockerStatus = 'aktyvus' | 'neaktyvus' | 'negali_spausdinti' | 'panaikintas';
 

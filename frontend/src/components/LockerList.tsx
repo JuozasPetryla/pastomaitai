@@ -1,4 +1,4 @@
-import type { LockerListItem } from '../models/pastomatas';
+import type { LockerListItem } from '../models/locker';
 
 type LockerListProps = {
   activeId?: number;

@@ -1,4 +1,4 @@
-import type { NotificationListItem } from '../models/pranesimas';
+import type { NotificationListItem } from '../models/notification';
 
 type NotificationListProps = {
   activeId?: number;

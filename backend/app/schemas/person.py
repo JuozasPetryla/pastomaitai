@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
-from app.models.asmuo import DarbuotojoPareigos
+from app.models.person import DarbuotojoPareigos
 
 class AsmuoBase(BaseModel):
     telefono_nr: str

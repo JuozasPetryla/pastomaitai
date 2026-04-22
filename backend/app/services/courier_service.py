@@ -3,8 +3,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.asmuo import Asmuo, Darbuotojas, DarbuotojoPareigos
-from app.schemas.asmuo import (
+from app.models.person import Asmuo, Darbuotojas, DarbuotojoPareigos
+from app.schemas.person import (
     DarbuotojasCreate,
     DarbuotojasListItem,
     DarbuotojasRead,

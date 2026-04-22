@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
-from app.models.asmuo import DarbuotojoPareigos
-from app.schemas.asmuo import (
+from app.models.person import DarbuotojoPareigos
+from app.schemas.person import (
     DarbuotojasCreate,
     DarbuotojasListItem,
     DarbuotojasRead,

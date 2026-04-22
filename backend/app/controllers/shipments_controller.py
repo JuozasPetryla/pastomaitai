@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
-from app.models.siunta import SiuntosBusena
-from app.schemas.siunta import ShipmentCreate, ShipmentListItem, ShipmentResponse, ShipmentUpdate
+from app.models.shipment import SiuntosBusena
+from app.schemas.shipment import ShipmentCreate, ShipmentListItem, ShipmentResponse, ShipmentUpdate
 from app.services import shipment_service
 
 router = APIRouter(prefix="/shipments", tags=["shipments"])

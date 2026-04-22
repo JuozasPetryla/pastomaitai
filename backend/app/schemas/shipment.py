@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.siunta import SiuntosBusena, SiuntosDydis
+from app.models.shipment import SiuntosBusena, SiuntosDydis
 
 
 class ShipmentPartyBase(BaseModel):

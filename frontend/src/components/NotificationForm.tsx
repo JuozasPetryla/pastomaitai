@@ -5,7 +5,7 @@ import type {
   NotificationCreatePayload,
   NotificationType,
   NotificationUpdatePayload,
-} from '../models/pranesimas';
+} from '../models/notification';
 
 type NotificationFormMode = 'create' | 'edit';
 

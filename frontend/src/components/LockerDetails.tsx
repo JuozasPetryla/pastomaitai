@@ -1,4 +1,4 @@
-import type { Locker } from '../models/pastomatas';
+import type { Locker } from '../models/locker';
 
 const statusLabels = {
   active: 'Active',

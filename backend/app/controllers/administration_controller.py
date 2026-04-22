@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
-from app.models.pastomatas import PastomatoBusena
-from app.schemas.pastomatas import (
+from app.models.locker import PastomatoBusena
+from app.schemas.locker import (
     PastomatasCreate,
     PastomatasListItem,
     PastomatasRead,

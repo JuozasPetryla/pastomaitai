@@ -8,18 +8,18 @@ import {
   updateLocker,
 } from '../api/administrationApi';
 import { AppModal, type AppModalAction } from '../components/AppModal';
-import { LockerActions } from '../components/PastomatoActions';
-import { LockerDetails } from '../components/PastomatoDetails';
-import { LockerForm } from '../components/PastomatoForm';
-import { LockerFilters } from '../components/PastomatuFilters';
-import { LockerList } from '../components/PastomatuList';
+import { LockerActions } from '../components/LockerActions';
+import { LockerDetails } from '../components/LockerDetails';
+import { LockerForm } from '../components/LockerForm';
+import { LockerFilters } from '../components/LockerFilters';
+import { LockerList } from '../components/LockerList';
 import type {
   Locker,
   LockerCreatePayload,
   LockerFilters as LockerFiltersType,
   LockerListItem,
   LockerUpdatePayload,
-} from '../models/pastomatas';
+} from '../models/locker';
 
 type FormMode = 'create' | 'edit';
 type ModalState = {

@@ -5,7 +5,7 @@ from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Integer, String, 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
-from app.models.siunta import SiuntosDydis
+from app.models.shipment import SiuntosDydis
 
 
 class PastomatoBusena(str, enum.Enum):

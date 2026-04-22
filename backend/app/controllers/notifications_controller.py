@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
-from app.models.pranesimas import PranesimoTipas
-from app.schemas.pranesimas import (
+from app.models.notification import PranesimoTipas
+from app.schemas.notification import (
     PranesimasCreate,
     PranesimasListItem,
     PranesimasRead,

@@ -3,8 +3,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.pastomatas import Pastomatas, PastomatoBusena, PastomatoSkyrius
-from app.schemas.pastomatas import (
+from app.models.locker import Pastomatas, PastomatoBusena, PastomatoSkyrius
+from app.schemas.locker import (
     PastomatasCreate,
     PastomatasListItem,
     PastomatasRead,

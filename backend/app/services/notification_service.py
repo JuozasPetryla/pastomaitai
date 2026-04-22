@@ -2,8 +2,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.pranesimas import Pranesimas, PranesimoTipas
-from app.schemas.pranesimas import (
+from app.models.notification import Pranesimas, PranesimoTipas
+from app.schemas.notification import (
     PranesimasCreate,
     PranesimasListItem,
     PranesimasRead,

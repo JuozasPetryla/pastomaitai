@@ -8,18 +8,18 @@ import {
   updateNotification,
 } from '../api/notificationApi';
 import { AppModal, type AppModalAction } from '../components/AppModal';
-import { NotificationActions } from '../components/PranesimasActions';
-import { NotificationDetails } from '../components/PranesimasDetails';
-import { NotificationForm } from '../components/PranesimasForm';
-import { NotificationFilters } from '../components/PranesimuFilters';
-import { NotificationList } from '../components/PranesimuList';
+import { NotificationActions } from '../components/NotificationActions';
+import { NotificationDetails } from '../components/NotificationDetails';
+import { NotificationForm } from '../components/NotificationForm';
+import { NotificationFilters } from '../components/NotificationFilters';
+import { NotificationList } from '../components/NotificationList';
 import type {
   Notification,
   NotificationCreatePayload,
   NotificationFilters as NotificationFiltersType,
   NotificationListItem,
   NotificationUpdatePayload,
-} from '../models/pranesimas';
+} from '../models/notification';
 
 type FormMode = 'create' | 'edit';
 type ModalState = {

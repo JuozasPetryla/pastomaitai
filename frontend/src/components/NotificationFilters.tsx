@@ -1,4 +1,4 @@
-import type { NotificationFilters, NotificationType } from '../models/pranesimas';
+import type { NotificationFilters, NotificationType } from '../models/notification';
 
 const notificationTypes: Array<{ value: NotificationType | ''; label: string }> = [
   { value: '', label: 'All types' },
