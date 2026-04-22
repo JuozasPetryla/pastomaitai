@@ -27,31 +27,11 @@ SUBSYSTEMS: list[Subsystem] = [
         ],
     ),
     Subsystem(
-        id="labels",
-        name="Lipdukų posistemis",
-        description="Siuntos lipduko generavimas ir gavimas.",
-        primary_actor="Siuntėjas",
-        use_cases=[
-            "Generuoti siuntos lipduką",
-            "Gauti skaitmeninį lipduką",
-            "Gauti fizinį lipduką paštomate",
-        ],
-    ),
-    Subsystem(
         id="shipments",
         name="Siuntų posistemis",
         description="Siuntų registravimas, siuntimas, atsiėmimas ir apmokėjimas.",
         primary_actor="Siuntėjas / Gavėjas",
-        use_cases=[
-            "Registruoti siuntą",
-            "Registruoti internetu",
-            "Registruoti paštomate",
-            "Apmokėti siuntą",
-            "Apmokėti paštomate",
-            "Apmokėti internetu",
-            "Siųsti siuntą",
-            "Atsiimti siuntą",
-        ],
+        use_cases=[],
     ),
     Subsystem(
         id="courier",

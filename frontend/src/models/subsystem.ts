@@ -1,7 +1,6 @@
 export type SubsystemId =
   | 'administration'
   | 'notifications'
-  | 'labels'
   | 'shipments'
   | 'courier';
 

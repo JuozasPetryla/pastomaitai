@@ -48,4 +48,3 @@ View -> component -> API client -> backend controller
 - Parcel locker administration: `administration_controller.py`, `administration_service.py`, `pastomatas.py`
 - Courier workflows: `courier_controller.py`, `courier_service.py`
 - Notifications: `notifications_controller.py`, `notification_service.py`, `pranesimas.py`
-- Labels: `labels_controller.py`, `label_service.py`

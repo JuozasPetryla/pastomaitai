@@ -27,31 +27,11 @@ export const subsystems: Subsystem[] = [
     ],
   },
   {
-    id: 'labels',
-    name: 'Lipdukų posistemis',
-    description: 'Siuntos lipduko generavimas ir gavimas.',
-    primaryActor: 'Siuntėjas',
-    useCases: [
-      'Generuoti siuntos lipduką',
-      'Gauti skaitmeninį lipduką',
-      'Gauti fizinį lipduką paštomate',
-    ],
-  },
-  {
     id: 'shipments',
     name: 'Siuntų posistemis',
     description: 'Siuntų registravimas, siuntimas, atsiėmimas ir apmokėjimas.',
     primaryActor: 'Siuntėjas / Gavėjas',
-    useCases: [
-      // 'Registruoti siuntą',
-      // 'Registruoti internetu',
-      // 'Registruoti paštomate',
-      // 'Apmokėti siuntą',
-      // 'Apmokėti paštomate',
-      // 'Apmokėti internetu',
-      // 'Siųsti siuntą',
-      // 'Atsiimti siuntą',
-    ],
+    useCases: [],
   },
   {
     id: 'courier',
