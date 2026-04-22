@@ -29,11 +29,11 @@ type ModalState = {
 };
 
 export function CourierView() {
-  const [filters, setFilters] = useState<CourierFiltersType>({ pareigos: '' });
+  const [filters, setFilters] = useState<CourierFiltersType>({ role: '' });
   const [couriers, setCouriers] = useState<CourierListItem[]>([]);
   const [selectedCourier, setSelectedCourier] = useState<Courier>();
   const [selectedId, setSelectedId] = useState<number>();
-  const [status, setStatus] = useState('Pasirinkite filtrus arba kurjeri.');
+  const [status, setStatus] = useState('Select filters or a courier.');
   const [formMode, setFormMode] = useState<FormMode>();
   const [modal, setModal] = useState<ModalState>();
 
@@ -41,9 +41,9 @@ export function CourierView() {
 
   const showError = (message: string) => {
     setModal({
-      title: 'Klaida',
+      title: 'Error',
       message,
-      actions: [{ label: 'Uzdaryti', onClick: closeModal, variant: 'primary' }],
+      actions: [{ label: 'Close', onClick: closeModal, variant: 'primary' }],
     });
   };
 
@@ -51,7 +51,7 @@ export function CourierView() {
     nextFilters: CourierFiltersType = filters,
   ): Promise<CourierListItem[]> => {
     setFilters(nextFilters);
-    setStatus('Kraunamas kurjeriu sarasas...');
+    setStatus('Loading couriers...');
     try {
       const items = await fetchCouriers(nextFilters);
       setCouriers(items);
@@ -59,26 +59,26 @@ export function CourierView() {
         setSelectedId(undefined);
         setSelectedCourier(undefined);
       }
-      setStatus(items.length ? 'Kurjeriu sarasas pateiktas.' : 'Sarasas tuscias.');
+      setStatus(items.length ? 'Courier list loaded.' : 'No couriers found.');
       return items;
     } catch (caught) {
       setCouriers([]);
-      showError(caught instanceof Error ? caught.message : 'Nepavyko gauti kurjeriu saraso.');
-      setStatus('Nepavyko gauti kurjeriu saraso.');
+      showError(caught instanceof Error ? caught.message : 'Failed to load couriers.');
+      setStatus('Failed to load couriers.');
       return [];
     }
   };
 
   const selectCourier = async (id: number) => {
     setSelectedId(id);
-    setStatus('Kraunama pasirinkto kurjerio informacija...');
+    setStatus('Loading courier details...');
     try {
       setSelectedCourier(await fetchCourier(id));
-      setStatus('Kurjerio informacija pateikta.');
+      setStatus('Courier details loaded.');
     } catch (caught) {
       setSelectedCourier(undefined);
-      showError(caught instanceof Error ? caught.message : 'Nepavyko gauti kurjerio informacijos.');
-      setStatus('Nepavyko gauti kurjerio informacijos.');
+      showError(caught instanceof Error ? caught.message : 'Failed to load courier details.');
+      setStatus('Failed to load courier details.');
     }
   };
 
@@ -89,9 +89,9 @@ export function CourierView() {
       setSelectedCourier(created);
       setFormMode(undefined);
       await loadCouriers();
-      setStatus('Kurjeris sekmingai sukurtas.');
+      setStatus('Courier created successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Kurjerio sukurti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to create courier.');
     }
   };
 
@@ -105,9 +105,9 @@ export function CourierView() {
       setSelectedCourier(updated);
       setFormMode(undefined);
       await loadCouriers();
-      setStatus('Kurjeris sekmingai redaguotas.');
+      setStatus('Courier updated successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Kurjerio redaguoti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to update courier.');
     }
   };
 
@@ -122,26 +122,26 @@ export function CourierView() {
       setSelectedCourier(undefined);
       setFormMode(undefined);
       await loadCouriers();
-      setStatus('Kurjeris sekmingai panaikintas.');
+      setStatus('Courier deleted successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Kurjerio panaikinti nepavyko.');
-      setStatus(caught instanceof Error ? caught.message : 'Kurjerio panaikinti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to delete courier.');
+      setStatus(caught instanceof Error ? caught.message : 'Failed to delete courier.');
     }
   };
 
   const requestDelete = () => {
     if (!selectedCourier) {
-      showError('Pasirinkite kurjeri, kuri norite naikinti.');
+      showError('Select a courier to delete.');
       return;
     }
 
     setModal({
-      title: 'Naikinti kurjeri?',
-      message: `Kurjeris "${selectedCourier.vardas} ${selectedCourier.pavarde}" bus visam laikui istrintas.`,
+      title: 'Delete courier?',
+      message: `Courier "${selectedCourier.firstName} ${selectedCourier.lastName}" will be permanently removed.`,
       actions: [
-        { label: 'Atsaukti', onClick: closeModal, variant: 'secondary' },
+        { label: 'Cancel', onClick: closeModal, variant: 'secondary' },
         {
-          label: 'Naikinti',
+          label: 'Delete',
           variant: 'danger',
           onClick: () => {
             closeModal();
@@ -159,7 +159,7 @@ export function CourierView() {
 
     return () => window.clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.pareigos]);
+  }, [filters.role]);
 
   return (
     <div className="admin-workflow">
@@ -184,12 +184,12 @@ export function CourierView() {
       ) : null}
 
       <div className="admin-grid">
-        <section aria-label="Kurjeriu sarasas">
+        <section aria-label="Courier list">
           <p className="workflow-status">{status}</p>
           <CourierList activeId={selectedId} items={couriers} onSelect={selectCourier} />
         </section>
 
-        <section aria-label="Pasirinkto kurjerio informacija">
+        <section aria-label="Selected courier details">
           <CourierDetails courier={selectedCourier} />
         </section>
       </div>

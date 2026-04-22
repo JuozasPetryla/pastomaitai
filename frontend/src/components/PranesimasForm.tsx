@@ -1,165 +1,163 @@
 import { useEffect, useState } from 'react';
 
 import type {
-  Pranesimas,
-  PranesimasCreatePayload,
-  PranesimasUpdatePayload,
-  PranesimoTipas,
+  Notification,
+  NotificationCreatePayload,
+  NotificationType,
+  NotificationUpdatePayload,
 } from '../models/pranesimas';
 
-type PranesimasFormMode = 'create' | 'edit';
+type NotificationFormMode = 'create' | 'edit';
 
-type PranesimasFormProps = {
-  mode: PranesimasFormMode;
-  pranesimas?: Pranesimas;
+type NotificationFormProps = {
+  mode: NotificationFormMode;
+  notification?: Notification;
   onCancel: () => void;
-  onCreate: (payload: PranesimasCreatePayload) => Promise<void>;
-  onUpdate: (payload: PranesimasUpdatePayload) => Promise<void>;
+  onCreate: (payload: NotificationCreatePayload) => Promise<void>;
+  onUpdate: (payload: NotificationUpdatePayload) => Promise<void>;
   onError: (message: string) => void;
 };
 
 type FormState = {
-  asmuo_id: string;
-  tekstas: string;
-  tipas: PranesimoTipas;
-  issiuntimo_operatoriui_data: string;
-  operatoriaus_atsako_data: string;
-  issiustas: boolean;
+  personId: string;
+  message: string;
+  type: NotificationType;
+  sentToProviderAt: string;
+  providerResponseAt: string;
+  isSent: boolean;
 };
 
-const tipai: PranesimoTipas[] = ['sms', 'el_pastas'];
+const notificationTypes: NotificationType[] = ['sms', 'email'];
 
-function getInitialState(mode: PranesimasFormMode, pranesimas?: Pranesimas): FormState {
+function getInitialState(mode: NotificationFormMode, notification?: Notification): FormState {
   return {
-    asmuo_id: pranesimas ? String(pranesimas.asmuo_id) : '',
-    tekstas: pranesimas?.tekstas ?? '',
-    tipas: pranesimas?.tipas ?? 'sms',
-    issiuntimo_operatoriui_data: pranesimas?.issiuntimo_operatoriui_data ?? '',
-    operatoriaus_atsako_data: pranesimas?.operatoriaus_atsako_data ?? '',
-    issiustas: pranesimas?.issiustas ?? false,
+    personId: notification ? String(notification.personId) : '',
+    message: notification?.message ?? '',
+    type: notification?.type ?? 'sms',
+    sentToProviderAt: notification?.sentToProviderAt ?? '',
+    providerResponseAt: notification?.providerResponseAt ?? '',
+    isSent: notification?.isSent ?? false,
   };
 }
 
-export function PranesimasForm({
+export function NotificationForm({
   mode,
-  pranesimas,
+  notification,
   onCancel,
   onCreate,
   onUpdate,
   onError,
-}: PranesimasFormProps) {
-  const [form, setForm] = useState<FormState>(() => getInitialState(mode, pranesimas));
+}: NotificationFormProps) {
+  const [form, setForm] = useState<FormState>(() => getInitialState(mode, notification));
 
   useEffect(() => {
-    setForm(getInitialState(mode, pranesimas));
-  }, [mode, pranesimas]);
+    setForm(getInitialState(mode, notification));
+  }, [mode, notification]);
 
   const submit = async () => {
-    if (form.tekstas.trim().length < 1) {
-      onError('Tekstas negali būti tuščias.');
+    if (form.message.trim().length < 1) {
+      onError('Message cannot be empty.');
       return;
     }
 
     if (mode === 'create') {
-      const asmuo_id = parseInt(form.asmuo_id, 10);
-      if (!asmuo_id || asmuo_id < 1) {
-        onError('Įveskite teisingą asmens ID.');
+      const personId = parseInt(form.personId, 10);
+      if (!personId || personId < 1) {
+        onError('Enter a valid person ID.');
         return;
       }
 
       await onCreate({
-        asmuo_id,
-        tekstas: form.tekstas.trim(),
-        tipas: form.tipas,
-        issiuntimo_operatoriui_data: form.issiuntimo_operatoriui_data || null,
+        personId,
+        message: form.message.trim(),
+        type: form.type,
+        sentToProviderAt: form.sentToProviderAt || null,
       });
       return;
     }
 
     await onUpdate({
-      tekstas: form.tekstas.trim(),
-      tipas: form.tipas,
-      issiuntimo_operatoriui_data: form.issiuntimo_operatoriui_data || null,
-      operatoriaus_atsako_data: form.operatoriaus_atsako_data || null,
-      issiustas: form.issiustas,
+      message: form.message.trim(),
+      type: form.type,
+      sentToProviderAt: form.sentToProviderAt || null,
+      providerResponseAt: form.providerResponseAt || null,
+      isSent: form.isSent,
     });
   };
 
   return (
-    <section className="locker-form" aria-label="Pranešimo forma">
+    <section className="locker-form" aria-label="Notification form">
       <header>
-        <h3>{mode === 'create' ? 'Kurti pranešimą' : 'Redaguoti pranešimą'}</h3>
+        <h3>{mode === 'create' ? 'Create notification' : 'Edit notification'}</h3>
         <button type="button" onClick={onCancel}>
-          Uždaryti
+          Close
         </button>
       </header>
 
       <div className="form-grid">
         {mode === 'create' && (
           <label>
-            <span>Asmens ID</span>
+            <span>Person ID</span>
             <input
               type="number"
               min={1}
-              value={form.asmuo_id}
-              onChange={(event) => setForm({ ...form, asmuo_id: event.target.value })}
+              value={form.personId}
+              onChange={(event) => setForm({ ...form, personId: event.target.value })}
             />
           </label>
         )}
 
         <label>
-          <span>Tipas</span>
+          <span>Type</span>
           <select
-            value={form.tipas}
-            onChange={(event) => setForm({ ...form, tipas: event.target.value as PranesimoTipas })}
+            value={form.type}
+            onChange={(event) =>
+              setForm({ ...form, type: event.target.value as NotificationType })
+            }
           >
-            {tipai.map((tipas) => (
-              <option key={tipas} value={tipas}>
-                {tipas === 'sms' ? 'SMS' : 'El. paštas'}
+            {notificationTypes.map((type) => (
+              <option key={type} value={type}>
+                {type === 'sms' ? 'SMS' : 'Email'}
               </option>
             ))}
           </select>
         </label>
 
         <label>
-          <span>Tekstas</span>
+          <span>Message</span>
           <textarea
             rows={4}
-            value={form.tekstas}
-            onChange={(event) => setForm({ ...form, tekstas: event.target.value })}
+            value={form.message}
+            onChange={(event) => setForm({ ...form, message: event.target.value })}
           />
         </label>
 
         <label>
-          <span>Išsiuntimo operatoriui data</span>
+          <span>Sent to provider date</span>
           <input
             type="date"
-            value={form.issiuntimo_operatoriui_data}
-            onChange={(event) =>
-              setForm({ ...form, issiuntimo_operatoriui_data: event.target.value })
-            }
+            value={form.sentToProviderAt}
+            onChange={(event) => setForm({ ...form, sentToProviderAt: event.target.value })}
           />
         </label>
 
         {mode === 'edit' && (
           <>
             <label>
-              <span>Operatoriaus atsako data</span>
+              <span>Provider response date</span>
               <input
                 type="date"
-                value={form.operatoriaus_atsako_data}
-                onChange={(event) =>
-                  setForm({ ...form, operatoriaus_atsako_data: event.target.value })
-                }
+                value={form.providerResponseAt}
+                onChange={(event) => setForm({ ...form, providerResponseAt: event.target.value })}
               />
             </label>
 
             <label className="checkbox-label">
-              <span>Išsiųstas</span>
+              <span>Sent</span>
               <input
                 type="checkbox"
-                checked={form.issiustas}
-                onChange={(event) => setForm({ ...form, issiustas: event.target.checked })}
+                checked={form.isSent}
+                onChange={(event) => setForm({ ...form, isSent: event.target.checked })}
               />
             </label>
           </>
@@ -168,10 +166,10 @@ export function PranesimasForm({
 
       <div className="form-actions">
         <button type="button" onClick={submit}>
-          {mode === 'create' ? 'Sukurti' : 'Išsaugoti'}
+          {mode === 'create' ? 'Create' : 'Save'}
         </button>
         <button type="button" onClick={onCancel}>
-          Atšaukti
+          Cancel
         </button>
       </div>
     </section>

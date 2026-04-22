@@ -16,50 +16,53 @@ from app.services import notification_service
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
-@router.get("/pranesimai", response_model=list[PranesimasListItem])
-async def perziureti_pranesimu_sarasa(
+@router.get("", response_model=list[PranesimasListItem])
+async def list_notifications(
     session: Annotated[AsyncSession, Depends(get_session)],
-    asmuo_id: Annotated[int | None, Query(description="Filtravimas pagal asmens ID")] = None,
-    tipas: PranesimoTipas | None = None,
-    issiustas: bool | None = None,
+    person_id: Annotated[
+        int | None,
+        Query(alias="person_id", description="Filter by person ID"),
+    ] = None,
+    type_filter: PranesimoTipas | None = Query(default=None, alias="type"),
+    is_sent: bool | None = Query(default=None, alias="is_sent"),
 ) -> list[PranesimasListItem]:
-    return await notification_service.list_pranesimai(
+    return await notification_service.list_notifications(
         session,
-        asmuo_id=asmuo_id,
-        tipas=tipas,
-        issiustas=issiustas,
+        person_id=person_id,
+        type_filter=type_filter,
+        is_sent=is_sent,
     )
 
 
-@router.get("/pranesimai/{pranesimas_id}", response_model=PranesimasRead)
-async def pateikti_pasirinkto_pranesimo_informacija(
-    pranesimas_id: int,
+@router.get("/{notification_id}", response_model=PranesimasRead)
+async def get_notification_details(
+    notification_id: int,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> PranesimasRead:
-    return await notification_service.get_pranesimas(session, pranesimas_id)
+    return await notification_service.get_notification(session, notification_id)
 
 
-@router.post("/pranesimai", response_model=PranesimasRead, status_code=status.HTTP_201_CREATED)
-async def kurti_pranesima(
+@router.post("", response_model=PranesimasRead, status_code=status.HTTP_201_CREATED)
+async def create_notification(
     payload: PranesimasCreate,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> PranesimasRead:
-    return await notification_service.create_pranesimas(session, payload)
+    return await notification_service.create_notification(session, payload)
 
 
-@router.patch("/pranesimai/{pranesimas_id}", response_model=PranesimasRead)
-async def redaguoti_pranesima(
-    pranesimas_id: int,
+@router.patch("/{notification_id}", response_model=PranesimasRead)
+async def update_notification(
+    notification_id: int,
     payload: PranesimasUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> PranesimasRead:
-    return await notification_service.update_pranesimas(session, pranesimas_id, payload)
+    return await notification_service.update_notification(session, notification_id, payload)
 
 
-@router.delete("/pranesimai/{pranesimas_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def naikinti_pranesima(
-    pranesimas_id: int,
+@router.delete("/{notification_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_notification(
+    notification_id: int,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Response:
-    await notification_service.delete_pranesimas(session, pranesimas_id)
+    await notification_service.delete_notification(session, notification_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

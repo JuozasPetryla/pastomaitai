@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react';
 
 import {
-  createPranesimas,
-  deletePranesimas,
-  fetchPranesimai,
-  fetchPranesimas,
-  updatePranesimas,
+  createNotification,
+  deleteNotification,
+  fetchNotification,
+  fetchNotifications,
+  updateNotification,
 } from '../api/notificationApi';
 import { AppModal, type AppModalAction } from '../components/AppModal';
-import { PranesimasActions } from '../components/PranesimasActions';
-import { PranesimasDetails } from '../components/PranesimasDetails';
-import { PranesimasForm } from '../components/PranesimasForm';
-import { PranesimuFilters } from '../components/PranesimuFilters';
-import { PranesimuList } from '../components/PranesimuList';
+import { NotificationActions } from '../components/PranesimasActions';
+import { NotificationDetails } from '../components/PranesimasDetails';
+import { NotificationForm } from '../components/PranesimasForm';
+import { NotificationFilters } from '../components/PranesimuFilters';
+import { NotificationList } from '../components/PranesimuList';
 import type {
-  Pranesimas,
-  PranesimasCreatePayload,
-  PranesimasListItem,
-  PranesimasUpdatePayload,
-  PranesimuFiltrai,
+  Notification,
+  NotificationCreatePayload,
+  NotificationFilters as NotificationFiltersType,
+  NotificationListItem,
+  NotificationUpdatePayload,
 } from '../models/pranesimas';
 
 type FormMode = 'create' | 'edit';
@@ -29,11 +29,15 @@ type ModalState = {
 };
 
 export function NotificationView() {
-  const [filters, setFilters] = useState<PranesimuFiltrai>({ asmuo_id: '', tipas: '', issiustas: '' });
-  const [pranesimai, setPranesimai] = useState<PranesimasListItem[]>([]);
-  const [selectedPranesimas, setSelectedPranesimas] = useState<Pranesimas>();
+  const [filters, setFilters] = useState<NotificationFiltersType>({
+    personId: '',
+    type: '',
+    isSent: '',
+  });
+  const [notifications, setNotifications] = useState<NotificationListItem[]>([]);
+  const [selectedNotification, setSelectedNotification] = useState<Notification>();
   const [selectedId, setSelectedId] = useState<number>();
-  const [status, setStatus] = useState('Pasirinkite filtrus arba pranešimą.');
+  const [status, setStatus] = useState('Select filters or a notification.');
   const [formMode, setFormMode] = useState<FormMode>();
   const [modal, setModal] = useState<ModalState>();
 
@@ -41,82 +45,82 @@ export function NotificationView() {
 
   const showError = (message: string) => {
     setModal({
-      title: 'Klaida',
+      title: 'Error',
       message,
-      actions: [{ label: 'Uždaryti', onClick: closeModal, variant: 'primary' }],
+      actions: [{ label: 'Close', onClick: closeModal, variant: 'primary' }],
     });
   };
 
-  const loadPranesimai = async (
-    nextFilters: PranesimuFiltrai = filters,
-  ): Promise<PranesimasListItem[]> => {
+  const loadNotifications = async (
+    nextFilters: NotificationFiltersType = filters,
+  ): Promise<NotificationListItem[]> => {
     setFilters(nextFilters);
-    setStatus('Kraunamas pranešimų sąrašas...');
+    setStatus('Loading notifications...');
     try {
-      const items = await fetchPranesimai({
-        asmuo_id: nextFilters.asmuo_id ? parseInt(nextFilters.asmuo_id, 10) : undefined,
-        tipas: nextFilters.tipas || undefined,
-        issiustas:
-          nextFilters.issiustas === 'true'
+      const items = await fetchNotifications({
+        personId: nextFilters.personId ? parseInt(nextFilters.personId, 10) : undefined,
+        type: nextFilters.type || undefined,
+        isSent:
+          nextFilters.isSent === 'true'
             ? true
-            : nextFilters.issiustas === 'false'
+            : nextFilters.isSent === 'false'
               ? false
               : undefined,
       });
-      setPranesimai(items);
+      setNotifications(items);
       if (selectedId !== undefined && !items.some((item) => item.id === selectedId)) {
         setSelectedId(undefined);
-        setSelectedPranesimas(undefined);
+        setSelectedNotification(undefined);
       }
-      setStatus(items.length ? 'Pranešimų sąrašas pateiktas.' : 'Sąrašas tuščias.');
+      setStatus(items.length ? 'Notification list loaded.' : 'No notifications found.');
       return items;
     } catch (caught) {
-      setPranesimai([]);
-      showError(caught instanceof Error ? caught.message : 'Nepavyko gauti pranešimų sąrašo.');
-      setStatus('Nepavyko gauti pranešimų sąrašo.');
+      setNotifications([]);
+      showError(caught instanceof Error ? caught.message : 'Failed to load notifications.');
+      setStatus('Failed to load notifications.');
       return [];
     }
   };
 
-  const selectPranesimas = async (id: number) => {
+  const selectNotification = async (id: number) => {
     setSelectedId(id);
-    setStatus('Kraunama pasirinkto pranešimo informacija...');
+    setStatus('Loading notification details...');
     try {
-      setSelectedPranesimas(await fetchPranesimas(id));
-      setStatus('Pranešimo informacija pateikta.');
+      setSelectedNotification(await fetchNotification(id));
+      setStatus('Notification details loaded.');
     } catch (caught) {
-      setSelectedPranesimas(undefined);
-      showError(caught instanceof Error ? caught.message : 'Nepavyko gauti pranešimo informacijos.');
-      setStatus('Nepavyko gauti pranešimo informacijos.');
+      setSelectedNotification(undefined);
+      showError(caught instanceof Error ? caught.message : 'Failed to load notification details.');
+      setStatus('Failed to load notification details.');
     }
   };
 
-  const handleCreate = async (payload: PranesimasCreatePayload) => {
+  const handleCreate = async (payload: NotificationCreatePayload) => {
     try {
-      const created = await createPranesimas(payload);
+      const created = await createNotification(payload);
       setSelectedId(created.id);
-      setSelectedPranesimas(created);
+      setSelectedNotification(created);
       setFormMode(undefined);
-      await loadPranesimai();
-      setStatus('Pranešimas sėkmingai sukurtas.');
+      await loadNotifications();
+      setStatus('Notification created successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Pranešimo sukurti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to create notification.');
     }
   };
 
-  const handleUpdate = async (payload: PranesimasUpdatePayload) => {
+  const handleUpdate = async (payload: NotificationUpdatePayload) => {
     if (!selectedId) {
       return;
     }
 
     try {
-      const updated = await updatePranesimas(selectedId, payload);
-      setSelectedPranesimas(updated);
+      const updated = await updateNotification(selectedId, payload);
+      setSelectedNotification(updated);
       setFormMode(undefined);
-      await loadPranesimai();
-      setStatus('Pranešimas sėkmingai redaguotas.');
+      await loadNotifications();
+      setStatus('Notification updated successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Pranešimo redaguoti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to update notification.');
     }
   };
 
@@ -126,31 +130,31 @@ export function NotificationView() {
     }
 
     try {
-      await deletePranesimas(selectedId);
+      await deleteNotification(selectedId);
       setSelectedId(undefined);
-      setSelectedPranesimas(undefined);
+      setSelectedNotification(undefined);
       setFormMode(undefined);
-      await loadPranesimai();
-      setStatus('Pranešimas sėkmingai panaikintas.');
+      await loadNotifications();
+      setStatus('Notification deleted successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Pranešimo panaikinti nepavyko.');
-      setStatus(caught instanceof Error ? caught.message : 'Pranešimo panaikinti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to delete notification.');
+      setStatus(caught instanceof Error ? caught.message : 'Failed to delete notification.');
     }
   };
 
   const requestDelete = () => {
-    if (!selectedPranesimas) {
-      showError('Pasirinkite pranešimą, kurį norite naikinti.');
+    if (!selectedNotification) {
+      showError('Select a notification to delete.');
       return;
     }
 
     setModal({
-      title: 'Naikinti pranešimą?',
-      message: `Pranešimas #${selectedPranesimas.id} (${selectedPranesimas.tipas === 'sms' ? 'SMS' : 'El. paštas'}, asmuo #${selectedPranesimas.asmuo_id}) bus visam laikui ištrintas.`,
+      title: 'Delete notification?',
+      message: `Notification #${selectedNotification.id} (${selectedNotification.type === 'sms' ? 'SMS' : 'Email'}, person #${selectedNotification.personId}) will be permanently removed.`,
       actions: [
-        { label: 'Atšaukti', onClick: closeModal, variant: 'secondary' },
+        { label: 'Cancel', onClick: closeModal, variant: 'secondary' },
         {
-          label: 'Naikinti',
+          label: 'Delete',
           variant: 'danger',
           onClick: () => {
             closeModal();
@@ -163,18 +167,18 @@ export function NotificationView() {
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      void loadPranesimai(filters);
+      void loadNotifications(filters);
     }, 250);
 
     return () => window.clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.asmuo_id, filters.tipas, filters.issiustas]);
+  }, [filters.personId, filters.type, filters.isSent]);
 
   return (
     <div className="admin-workflow">
-      <PranesimuFilters filters={filters} onChange={setFilters} />
-      <PranesimasActions
-        canEdit={selectedPranesimas !== undefined}
+      <NotificationFilters filters={filters} onChange={setFilters} />
+      <NotificationActions
+        canEdit={selectedNotification !== undefined}
         canDelete={selectedId !== undefined}
         onCreate={() => setFormMode('create')}
         onEdit={() => setFormMode('edit')}
@@ -182,9 +186,9 @@ export function NotificationView() {
       />
 
       {formMode ? (
-        <PranesimasForm
+        <NotificationForm
           mode={formMode}
-          pranesimas={selectedPranesimas}
+          notification={selectedNotification}
           onCancel={() => setFormMode(undefined)}
           onCreate={handleCreate}
           onUpdate={handleUpdate}
@@ -193,13 +197,17 @@ export function NotificationView() {
       ) : null}
 
       <div className="admin-grid">
-        <section aria-label="Pranešimų sąrašas">
+        <section aria-label="Notification list">
           <p className="workflow-status">{status}</p>
-          <PranesimuList activeId={selectedId} items={pranesimai} onSelect={selectPranesimas} />
+          <NotificationList
+            activeId={selectedId}
+            items={notifications}
+            onSelect={selectNotification}
+          />
         </section>
 
-        <section aria-label="Pasirinkto pranešimo informacija">
-          <PranesimasDetails pranesimas={selectedPranesimas} />
+        <section aria-label="Selected notification details">
+          <NotificationDetails notification={selectedNotification} />
         </section>
       </div>
 

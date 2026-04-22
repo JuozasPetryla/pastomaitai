@@ -1,36 +1,36 @@
-export type PranesimoTipas = 'sms' | 'el_pastas';
+export type NotificationType = 'sms' | 'email';
 
-export type PranesimasListItem = {
+export type NotificationListItem = {
   id: number;
-  asmuo_id: number;
-  tipas: PranesimoTipas;
-  issiustas: boolean;
-  issiuntimo_operatoriui_data: string | null;
-  created_at: string;
+  personId: number;
+  type: NotificationType;
+  isSent: boolean;
+  sentToProviderAt: string | null;
+  createdAt: string;
 };
 
-export type Pranesimas = PranesimasListItem & {
-  tekstas: string;
-  operatoriaus_atsako_data: string | null;
+export type Notification = NotificationListItem & {
+  message: string;
+  providerResponseAt: string | null;
 };
 
-export type PranesimuFiltrai = {
-  asmuo_id: string;
-  tipas: PranesimoTipas | '';
-  issiustas: 'true' | 'false' | '';
+export type NotificationFilters = {
+  personId: string;
+  type: NotificationType | '';
+  isSent: 'true' | 'false' | '';
 };
 
-export type PranesimasCreatePayload = {
-  asmuo_id: number;
-  tekstas: string;
-  tipas: PranesimoTipas;
-  issiuntimo_operatoriui_data?: string | null;
+export type NotificationCreatePayload = {
+  personId: number;
+  message: string;
+  type: NotificationType;
+  sentToProviderAt?: string | null;
 };
 
-export type PranesimasUpdatePayload = {
-  tekstas?: string;
-  tipas?: PranesimoTipas;
-  issiuntimo_operatoriui_data?: string | null;
-  operatoriaus_atsako_data?: string | null;
-  issiustas?: boolean;
+export type NotificationUpdatePayload = {
+  message?: string;
+  type?: NotificationType;
+  sentToProviderAt?: string | null;
+  providerResponseAt?: string | null;
+  isSent?: boolean;
 };

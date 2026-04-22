@@ -1,15 +1,15 @@
 import type { ShipmentFilters as ShipmentFiltersType, ShipmentStatus } from '../models/shipment';
 
 const statuses: Array<{ value: ShipmentStatus | ''; label: string }> = [
-  { value: '', label: 'Visos busenos' },
-  { value: 'parengta', label: 'Parengta' },
-  { value: 'apmoketa', label: 'Apmoketa' },
-  { value: 'uzregistruota', label: 'Uzregistruota' },
-  { value: 'ideta', label: 'Ideta' },
-  { value: 'tranzite', label: 'Tranzite' },
-  { value: 'pristatyta', label: 'Pristatyta' },
-  { value: 'atsiimta', label: 'Atsiimta' },
-  { value: 'atsaukta', label: 'Atsaukta' },
+  { value: '', label: 'All statuses' },
+  { value: 'prepared', label: 'Prepared' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'registered', label: 'Registered' },
+  { value: 'inserted', label: 'Inserted' },
+  { value: 'in_transit', label: 'In transit' },
+  { value: 'delivered', label: 'Delivered' },
+  { value: 'collected', label: 'Collected' },
+  { value: 'cancelled', label: 'Cancelled' },
 ];
 
 type ShipmentFiltersProps = {
@@ -21,21 +21,21 @@ export function ShipmentFilters({ filters, onChange }: ShipmentFiltersProps) {
   return (
     <div className="filter-bar">
       <label>
-        <span>Siuntos kodas</span>
+        <span>Shipment code</span>
         <input
           type="search"
-          value={filters.siuntosKodas}
-          placeholder="Pvz.: SNT-001001"
-          onChange={(event) => onChange({ ...filters, siuntosKodas: event.target.value })}
+          value={filters.shipmentCode}
+          placeholder="Example: SNT-001001"
+          onChange={(event) => onChange({ ...filters, shipmentCode: event.target.value })}
         />
       </label>
 
       <label>
-        <span>Busena</span>
+        <span>Status</span>
         <select
-          value={filters.busena}
+          value={filters.status}
           onChange={(event) =>
-            onChange({ ...filters, busena: event.target.value as ShipmentStatus | '' })
+            onChange({ ...filters, status: event.target.value as ShipmentStatus | '' })
           }
         >
           {statuses.map((status) => (

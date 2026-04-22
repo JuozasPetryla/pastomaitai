@@ -4,9 +4,18 @@ import type {
   ShipmentCreatePayload,
   ShipmentFilters,
   ShipmentListItem,
-  ShipmentStatus,
   ShipmentUpdatePayload,
 } from '../models/shipment';
+
+type ApiShipmentStatus =
+  | 'parengta'
+  | 'apmoketa'
+  | 'uzregistruota'
+  | 'ideta'
+  | 'tranzite'
+  | 'pristatyta'
+  | 'atsiimta'
+  | 'atsaukta';
 
 type ShipmentPartyResponse = {
   asmuo_id: number;
@@ -19,8 +28,8 @@ type ShipmentPartyResponse = {
 type ShipmentListItemResponse = {
   id: number;
   siuntos_kodas: string;
-  busena: ShipmentStatus;
-  dydis: Shipment['dydis'];
+  busena: ApiShipmentStatus;
+  dydis: Shipment['size'];
   siuntimo_adresas: string;
   gavimo_adresas: string;
   data: string;
@@ -33,11 +42,11 @@ type ShipmentResponse = {
   id: number;
   uzsakymo_nr: number;
   siuntos_kodas: string;
-  dydis: Shipment['dydis'];
+  dydis: Shipment['size'];
   gavimo_adresas: string;
   siuntimo_adresas: string;
   data: string;
-  busena: Shipment['busena'];
+  busena: ApiShipmentStatus;
   suma: number | string;
   saskaita: string | null;
   apmokamas_pastomate: boolean;
@@ -48,94 +57,118 @@ type ShipmentResponse = {
   gavejas: ShipmentPartyResponse;
 };
 
-function toShipmentParty(party: ShipmentPartyResponse): Shipment['siuntejas'] {
+const shipmentStatusFromApi: Record<ApiShipmentStatus, Shipment['status']> = {
+  parengta: 'prepared',
+  apmoketa: 'paid',
+  uzregistruota: 'registered',
+  ideta: 'inserted',
+  tranzite: 'in_transit',
+  pristatyta: 'delivered',
+  atsiimta: 'collected',
+  atsaukta: 'cancelled',
+};
+
+const shipmentStatusToApi: Record<Shipment['status'], ApiShipmentStatus> = {
+  prepared: 'parengta',
+  paid: 'apmoketa',
+  registered: 'uzregistruota',
+  inserted: 'ideta',
+  in_transit: 'tranzite',
+  delivered: 'pristatyta',
+  collected: 'atsiimta',
+  cancelled: 'atsaukta',
+};
+
+function toShipmentParty(party: ShipmentPartyResponse): Shipment['sender'] {
   return {
-    asmuoId: party.asmuo_id,
-    vardas: party.vardas,
-    pavarde: party.pavarde,
-    telefonoNr: party.telefono_nr,
-    elPastas: party.el_pastas,
+    personId: party.asmuo_id,
+    firstName: party.vardas,
+    lastName: party.pavarde,
+    phoneNumber: party.telefono_nr,
+    email: party.el_pastas,
   };
 }
 
 function toShipmentListItem(response: ShipmentListItemResponse): ShipmentListItem {
   return {
     id: response.id,
-    siuntosKodas: response.siuntos_kodas,
-    busena: response.busena,
-    dydis: response.dydis,
-    siuntimoAdresas: response.siuntimo_adresas,
-    gavimoAdresas: response.gavimo_adresas,
-    data: response.data,
+    shipmentCode: response.siuntos_kodas,
+    status: shipmentStatusFromApi[response.busena],
+    size: response.dydis,
+    dispatchAddress: response.siuntimo_adresas,
+    destinationAddress: response.gavimo_adresas,
+    shipmentDate: response.data,
     createdAt: response.created_at,
-    siuntejas: response.siuntejas,
-    gavejas: response.gavejas,
+    sender: response.siuntejas,
+    receiver: response.gavejas,
   };
 }
 
 function toShipment(response: ShipmentResponse): Shipment {
   return {
     id: response.id,
-    uzsakymoNr: response.uzsakymo_nr,
-    siuntosKodas: response.siuntos_kodas,
-    dydis: response.dydis,
-    gavimoAdresas: response.gavimo_adresas,
-    siuntimoAdresas: response.siuntimo_adresas,
-    data: response.data,
-    busena: response.busena,
-    suma: Number(response.suma),
-    saskaita: response.saskaita,
-    apmokamasPastomate: response.apmokamas_pastomate,
-    pastomatoSkyriausId: response.pastomato_skyrius_id,
+    orderNumber: response.uzsakymo_nr,
+    shipmentCode: response.siuntos_kodas,
+    size: response.dydis,
+    destinationAddress: response.gavimo_adresas,
+    dispatchAddress: response.siuntimo_adresas,
+    shipmentDate: response.data,
+    status: shipmentStatusFromApi[response.busena],
+    amount: Number(response.suma),
+    invoice: response.saskaita,
+    paymentAtLocker: response.apmokamas_pastomate,
+    lockerCellId: response.pastomato_skyrius_id,
     createdAt: response.created_at,
     updatedAt: response.updated_at,
-    siuntejas: toShipmentParty(response.siuntejas),
-    gavejas: toShipmentParty(response.gavejas),
+    sender: toShipmentParty(response.siuntejas),
+    receiver: toShipmentParty(response.gavejas),
   };
 }
 
 function toPayload(payload: ShipmentCreatePayload | ShipmentUpdatePayload) {
   return {
-    ...(payload.siuntejas
+    ...(payload.sender
       ? {
           siuntejas: {
-            vardas: payload.siuntejas.vardas,
-            pavarde: payload.siuntejas.pavarde,
-            telefono_nr: payload.siuntejas.telefonoNr,
-            el_pastas: payload.siuntejas.elPastas,
+            vardas: payload.sender.firstName,
+            pavarde: payload.sender.lastName,
+            telefono_nr: payload.sender.phoneNumber,
+            el_pastas: payload.sender.email,
           },
         }
       : {}),
-    ...(payload.gavejas
+    ...(payload.receiver
       ? {
           gavejas: {
-            vardas: payload.gavejas.vardas,
-            pavarde: payload.gavejas.pavarde,
-            telefono_nr: payload.gavejas.telefonoNr,
-            el_pastas: payload.gavejas.elPastas,
+            vardas: payload.receiver.firstName,
+            pavarde: payload.receiver.lastName,
+            telefono_nr: payload.receiver.phoneNumber,
+            el_pastas: payload.receiver.email,
           },
         }
       : {}),
-    ...(payload.dydis ? { dydis: payload.dydis } : {}),
-    ...(payload.gavimoAdresas ? { gavimo_adresas: payload.gavimoAdresas } : {}),
-    ...(payload.siuntimoAdresas ? { siuntimo_adresas: payload.siuntimoAdresas } : {}),
-    ...(payload.data ? { data: payload.data } : {}),
-    ...(payload.apmokamasPastomate !== undefined
-      ? { apmokamas_pastomate: payload.apmokamasPastomate }
+    ...(payload.size ? { dydis: payload.size } : {}),
+    ...(payload.destinationAddress ? { gavimo_adresas: payload.destinationAddress } : {}),
+    ...(payload.dispatchAddress ? { siuntimo_adresas: payload.dispatchAddress } : {}),
+    ...(payload.shipmentDate ? { data: payload.shipmentDate } : {}),
+    ...(payload.paymentAtLocker !== undefined
+      ? { apmokamas_pastomate: payload.paymentAtLocker }
       : {}),
-    ...('busena' in payload && payload.busena ? { busena: payload.busena } : {}),
+    ...('status' in payload && payload.status
+      ? { busena: shipmentStatusToApi[payload.status] }
+      : {}),
   };
 }
 
 export async function fetchShipments(filters: ShipmentFilters): Promise<ShipmentListItem[]> {
   const searchParams = new URLSearchParams();
 
-  if (filters.siuntosKodas) {
-    searchParams.set('siuntos_kodas', filters.siuntosKodas);
+  if (filters.shipmentCode) {
+    searchParams.set('shipment_code', filters.shipmentCode);
   }
 
-  if (filters.busena) {
-    searchParams.set('busena', filters.busena);
+  if (filters.status) {
+    searchParams.set('status', shipmentStatusToApi[filters.status]);
   }
 
   const query = searchParams.toString();

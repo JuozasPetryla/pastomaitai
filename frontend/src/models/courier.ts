@@ -1,12 +1,12 @@
-export type CourierRole = 'administratorius' | 'kurjeris';
+export type CourierRole = 'administrator' | 'courier';
 
 export type CourierListItem = {
   id: number;
-  telefonoNr: string;
-  elPastas: string;
-  vardas: string;
-  pavarde: string;
-  pareigos: CourierRole;
+  phoneNumber: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: CourierRole;
 };
 
 export type Courier = CourierListItem & {
@@ -15,21 +15,21 @@ export type Courier = CourierListItem & {
 };
 
 export type CourierFilters = {
-  pareigos: CourierRole | '';
+  role: CourierRole | '';
 };
 
 export type CourierCreatePayload = {
-  telefono_nr: string;
-  el_pastas: string;
-  vardas: string;
-  pavarde: string;
-  pareigos: CourierRole;
+  phoneNumber: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: CourierRole;
 };
 
 export type CourierUpdatePayload = {
-  telefono_nr?: string;
-  el_pastas?: string;
-  vardas?: string;
-  pavarde?: string;
-  pareigos?: CourierRole;
+  phoneNumber?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: CourierRole;
 };

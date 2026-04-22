@@ -17,15 +17,15 @@ router = APIRouter(prefix="/courier", tags=["courier"])
 
 
 @router.get("", response_model=list[DarbuotojasListItem])
-async def perziureti_kurjeriu_sarasa(
+async def list_couriers(
     session: Annotated[AsyncSession, Depends(get_session)],
-    pareigos: Annotated[DarbuotojoPareigos | None, Query()] = None,
+    role: Annotated[DarbuotojoPareigos | None, Query(alias="role")] = None,
 ) -> list[DarbuotojasListItem]:
-    return await courier_service.list_couriers(session, pareigos=pareigos)
+    return await courier_service.list_couriers(session, role=role)
 
 
 @router.get("/{courier_id}", response_model=DarbuotojasRead)
-async def pateikti_kurjerio_informacija(
+async def get_courier_details(
     courier_id: int,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> DarbuotojasRead:
@@ -33,7 +33,7 @@ async def pateikti_kurjerio_informacija(
 
 
 @router.post("", response_model=DarbuotojasRead, status_code=status.HTTP_201_CREATED)
-async def kurti_kurjeri(
+async def create_courier(
     payload: DarbuotojasCreate,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> DarbuotojasRead:
@@ -41,7 +41,7 @@ async def kurti_kurjeri(
 
 
 @router.patch("/{courier_id}", response_model=DarbuotojasRead)
-async def redaguoti_kurjeri(
+async def update_courier(
     courier_id: int,
     payload: DarbuotojasUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -50,7 +50,7 @@ async def redaguoti_kurjeri(
 
 
 @router.delete("/{courier_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def naikinti_kurjeri(
+async def delete_courier(
     courier_id: int,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Response:

@@ -1,4 +1,4 @@
-type PranesimasActionsProps = {
+type NotificationActionsProps = {
   canEdit: boolean;
   canDelete: boolean;
   onCreate: () => void;
@@ -6,23 +6,23 @@ type PranesimasActionsProps = {
   onDelete: () => void;
 };
 
-export function PranesimasActions({
+export function NotificationActions({
   canEdit,
   canDelete,
   onCreate,
   onEdit,
   onDelete,
-}: PranesimasActionsProps) {
+}: NotificationActionsProps) {
   return (
-    <div className="admin-actions" aria-label="Pranešimo valdymo veiksmai">
+    <div className="admin-actions" aria-label="Notification actions">
       <button type="button" onClick={onCreate}>
-        Kurti pranešimą
+        Create notification
       </button>
       <button type="button" disabled={!canEdit} onClick={onEdit}>
-        Redaguoti pranešimą
+        Edit notification
       </button>
       <button type="button" disabled={!canDelete} onClick={onDelete}>
-        Naikinti pranešimą
+        Delete notification
       </button>
     </div>
   );

@@ -12,19 +12,19 @@ from app.schemas.pastomatas import (
 )
 
 
-async def list_pastomatai(
+async def list_lockers(
     session: AsyncSession,
     *,
-    regionas: str | None = None,
-    busena: PastomatoBusena | None = None,
+    region: str | None = None,
+    status_filter: PastomatoBusena | None = None,
 ) -> list[PastomatasListItem]:
     statement = select(Pastomatas).options(selectinload(Pastomatas.skyriai))
 
-    if regionas:
-        statement = statement.where(Pastomatas.adresas.ilike(f"%{regionas}%"))
+    if region:
+        statement = statement.where(Pastomatas.adresas.ilike(f"%{region}%"))
 
-    if busena:
-        statement = statement.where(Pastomatas.busena == busena)
+    if status_filter:
+        statement = statement.where(Pastomatas.busena == status_filter)
     else:
         statement = statement.where(Pastomatas.busena != PastomatoBusena.panaikintas)
 
@@ -33,131 +33,131 @@ async def list_pastomatai(
 
     return [
         PastomatasListItem(
-            id=pastomatas.id,
-            adresas=pastomatas.adresas,
-            busena=pastomatas.busena,
-            produkto_kodas=pastomatas.produkto_kodas,
-            skyriu_skaicius=len(pastomatas.skyriai),
+            id=locker.id,
+            adresas=locker.adresas,
+            busena=locker.busena,
+            produkto_kodas=locker.produkto_kodas,
+            skyriu_skaicius=len(locker.skyriai),
         )
-        for pastomatas in result.unique().all()
+        for locker in result.unique().all()
     ]
 
 
-async def get_pastomatas(session: AsyncSession, pastomatas_id: int) -> PastomatasRead:
+async def get_locker(session: AsyncSession, locker_id: int) -> PastomatasRead:
     statement = (
         select(Pastomatas)
         .options(selectinload(Pastomatas.skyriai))
-        .where(Pastomatas.id == pastomatas_id)
+        .where(Pastomatas.id == locker_id)
     )
-    pastomatas = await session.scalar(statement)
+    locker = await session.scalar(statement)
 
-    if pastomatas is None:
+    if locker is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Pastomatas nerastas",
+            detail="Locker not found",
         )
 
-    return PastomatasRead.model_validate(pastomatas)
+    return PastomatasRead.model_validate(locker)
 
 
-async def create_pastomatas(session: AsyncSession, payload: PastomatasCreate) -> PastomatasRead:
-    await ensure_unique_pastomatas(
+async def create_locker(session: AsyncSession, payload: PastomatasCreate) -> PastomatasRead:
+    await ensure_unique_locker(
         session,
-        adresas=payload.adresas,
-        produkto_kodas=payload.produkto_kodas,
+        address=payload.adresas,
+        product_code=payload.produkto_kodas,
     )
 
-    pastomatas = Pastomatas(
+    locker = Pastomatas(
         adresas=payload.adresas,
         busena=PastomatoBusena.neaktyvus,
         produkto_kodas=payload.produkto_kodas,
     )
-    numeris = 1
-    skyriai: list[PastomatoSkyrius] = []
-    for grupe in payload.skyriai:
-        for _ in range(grupe.kiekis):
-            skyriai.append(PastomatoSkyrius(dydis=grupe.dydis, numeris=numeris))
-            numeris += 1
-    pastomatas.skyriai = skyriai
+    locker_number = 1
+    compartments: list[PastomatoSkyrius] = []
+    for group in payload.skyriai:
+        for _ in range(group.kiekis):
+            compartments.append(PastomatoSkyrius(dydis=group.dydis, numeris=locker_number))
+            locker_number += 1
+    locker.skyriai = compartments
 
-    session.add(pastomatas)
+    session.add(locker)
     await session.commit()
-    return await get_pastomatas(session, pastomatas.id)
+    return await get_locker(session, locker.id)
 
 
-async def update_pastomatas(
+async def update_locker(
     session: AsyncSession,
-    pastomatas_id: int,
+    locker_id: int,
     payload: PastomatasUpdate,
 ) -> PastomatasRead:
-    pastomatas = await get_pastomatas_model(session, pastomatas_id)
+    locker = await get_locker_model(session, locker_id)
 
-    await ensure_unique_pastomatas(
+    await ensure_unique_locker(
         session,
-        adresas=payload.adresas,
-        produkto_kodas=payload.produkto_kodas,
-        exclude_id=pastomatas_id,
+        address=payload.adresas,
+        product_code=payload.produkto_kodas,
+        exclude_id=locker_id,
     )
 
     if payload.adresas is not None:
-        pastomatas.adresas = payload.adresas
+        locker.adresas = payload.adresas
 
     if payload.busena is not None:
-        pastomatas.busena = payload.busena
+        locker.busena = payload.busena
 
     if payload.produkto_kodas is not None:
-        pastomatas.produkto_kodas = payload.produkto_kodas
+        locker.produkto_kodas = payload.produkto_kodas
 
-    pastomatas.updated_at = func.now()
+    locker.updated_at = func.now()
     await session.commit()
-    return await get_pastomatas(session, pastomatas_id)
+    return await get_locker(session, locker_id)
 
 
-async def delete_pastomatas(session: AsyncSession, pastomatas_id: int) -> None:
-    pastomatas = await get_pastomatas_model(session, pastomatas_id)
+async def delete_locker(session: AsyncSession, locker_id: int) -> None:
+    locker = await get_locker_model(session, locker_id)
 
-    pastomatas.busena = PastomatoBusena.panaikintas
-    pastomatas.updated_at = func.now()
+    locker.busena = PastomatoBusena.panaikintas
+    locker.updated_at = func.now()
     await session.commit()
 
 
-async def get_pastomatas_model(session: AsyncSession, pastomatas_id: int) -> Pastomatas:
+async def get_locker_model(session: AsyncSession, locker_id: int) -> Pastomatas:
     statement = (
         select(Pastomatas)
         .options(selectinload(Pastomatas.skyriai))
-        .where(Pastomatas.id == pastomatas_id)
+        .where(Pastomatas.id == locker_id)
     )
-    pastomatas = await session.scalar(statement)
+    locker = await session.scalar(statement)
 
-    if pastomatas is None:
+    if locker is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Pastomatas nerastas",
+            detail="Locker not found",
         )
 
-    return pastomatas
+    return locker
 
 
-async def ensure_unique_pastomatas(
+async def ensure_unique_locker(
     session: AsyncSession,
     *,
-    adresas: str | None = None,
-    produkto_kodas: str | None = None,
+    address: str | None = None,
+    product_code: str | None = None,
     exclude_id: int | None = None,
 ) -> None:
-    if adresas is not None:
+    if address is not None:
         await ensure_unique_field(
             session,
-            Pastomatas.adresas == adresas,
-            "Paštomatas su tokiu adresu jau egzistuoja",
+            Pastomatas.adresas == address,
+            "Locker with this address already exists",
             exclude_id=exclude_id,
         )
 
-    if produkto_kodas is not None:
+    if product_code is not None:
         await ensure_unique_field(
             session,
-            Pastomatas.produkto_kodas == produkto_kodas,
-            "Paštomatas su tokiu produkto kodu jau egzistuoja",
+            Pastomatas.produkto_kodas == product_code,
+            "Locker with this product code already exists",
             exclude_id=exclude_id,
         )
 

@@ -20,33 +20,33 @@ type ShipmentFormProps = {
 };
 
 type FormState = {
-  siuntejas: ShipmentPartyInput;
-  gavejas: ShipmentPartyInput;
-  dydis: Shipment['dydis'];
-  siuntimoAdresas: string;
-  gavimoAdresas: string;
-  data: string;
-  apmokamasPastomate: boolean;
-  busena: ShipmentStatus;
+  sender: ShipmentPartyInput;
+  receiver: ShipmentPartyInput;
+  size: Shipment['size'];
+  dispatchAddress: string;
+  destinationAddress: string;
+  shipmentDate: string;
+  paymentAtLocker: boolean;
+  status: ShipmentStatus;
 };
 
 const statuses: ShipmentStatus[] = [
-  'parengta',
-  'apmoketa',
-  'uzregistruota',
-  'ideta',
-  'tranzite',
-  'pristatyta',
-  'atsiimta',
-  'atsaukta',
+  'prepared',
+  'paid',
+  'registered',
+  'inserted',
+  'in_transit',
+  'delivered',
+  'collected',
+  'cancelled',
 ];
 
 function emptyParty(): ShipmentPartyInput {
   return {
-    vardas: '',
-    pavarde: '',
-    telefonoNr: '',
-    elPastas: '',
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+    email: '',
   };
 }
 
@@ -56,28 +56,28 @@ function todayValue(): string {
 
 function getInitialState(shipment?: Shipment): FormState {
   return {
-    siuntejas: shipment
+    sender: shipment
       ? {
-          vardas: shipment.siuntejas.vardas,
-          pavarde: shipment.siuntejas.pavarde,
-          telefonoNr: shipment.siuntejas.telefonoNr,
-          elPastas: shipment.siuntejas.elPastas,
+          firstName: shipment.sender.firstName,
+          lastName: shipment.sender.lastName,
+          phoneNumber: shipment.sender.phoneNumber,
+          email: shipment.sender.email,
         }
       : emptyParty(),
-    gavejas: shipment
+    receiver: shipment
       ? {
-          vardas: shipment.gavejas.vardas,
-          pavarde: shipment.gavejas.pavarde,
-          telefonoNr: shipment.gavejas.telefonoNr,
-          elPastas: shipment.gavejas.elPastas,
+          firstName: shipment.receiver.firstName,
+          lastName: shipment.receiver.lastName,
+          phoneNumber: shipment.receiver.phoneNumber,
+          email: shipment.receiver.email,
         }
       : emptyParty(),
-    dydis: shipment?.dydis ?? 'm',
-    siuntimoAdresas: shipment?.siuntimoAdresas ?? '',
-    gavimoAdresas: shipment?.gavimoAdresas ?? '',
-    data: shipment?.data ?? todayValue(),
-    apmokamasPastomate: shipment?.apmokamasPastomate ?? false,
-    busena: shipment?.busena ?? 'uzregistruota',
+    size: shipment?.size ?? 'm',
+    dispatchAddress: shipment?.dispatchAddress ?? '',
+    destinationAddress: shipment?.destinationAddress ?? '',
+    shipmentDate: shipment?.shipmentDate ?? todayValue(),
+    paymentAtLocker: shipment?.paymentAtLocker ?? false,
+    status: shipment?.status ?? 'registered',
   };
 }
 
@@ -96,7 +96,7 @@ export function ShipmentForm({
   }, [shipment, mode]);
 
   const setPartyField = (
-    side: 'siuntejas' | 'gavejas',
+    side: 'sender' | 'receiver',
     field: keyof ShipmentPartyInput,
     value: string,
   ) => {
@@ -110,19 +110,19 @@ export function ShipmentForm({
   };
 
   const submit = async () => {
-    if (form.siuntimoAdresas.trim().length < 3 || form.gavimoAdresas.trim().length < 3) {
-      onError('Patikrinkite siuntimo ir gavimo adresus.');
+    if (form.dispatchAddress.trim().length < 3 || form.destinationAddress.trim().length < 3) {
+      onError('Check the dispatch and destination addresses.');
       return;
     }
 
     const commonPayload = {
-      siuntejas: form.siuntejas,
-      gavejas: form.gavejas,
-      dydis: form.dydis,
-      siuntimoAdresas: form.siuntimoAdresas.trim(),
-      gavimoAdresas: form.gavimoAdresas.trim(),
-      data: form.data,
-      apmokamasPastomate: form.apmokamasPastomate,
+      sender: form.sender,
+      receiver: form.receiver,
+      size: form.size,
+      dispatchAddress: form.dispatchAddress.trim(),
+      destinationAddress: form.destinationAddress.trim(),
+      shipmentDate: form.shipmentDate,
+      paymentAtLocker: form.paymentAtLocker,
     };
 
     if (mode === 'create') {
@@ -132,97 +132,97 @@ export function ShipmentForm({
 
     await onUpdate({
       ...commonPayload,
-      busena: form.busena,
+      status: form.status,
     });
   };
 
   return (
-    <section className="locker-form" aria-label="Siuntos forma">
+    <section className="locker-form" aria-label="Shipment form">
       <header>
-        <h3>{mode === 'create' ? 'Kurti siunta' : 'Redaguoti siunta'}</h3>
+        <h3>{mode === 'create' ? 'Create shipment' : 'Edit shipment'}</h3>
         <button type="button" onClick={onCancel}>
-          Uzdaryti
+          Close
         </button>
       </header>
 
       <div className="form-grid">
         <label>
-          <span>Siuntejo vardas</span>
+          <span>Sender first name</span>
           <input
-            value={form.siuntejas.vardas}
-            onChange={(event) => setPartyField('siuntejas', 'vardas', event.target.value)}
+            value={form.sender.firstName}
+            onChange={(event) => setPartyField('sender', 'firstName', event.target.value)}
           />
         </label>
         <label>
-          <span>Siuntejo pavarde</span>
+          <span>Sender last name</span>
           <input
-            value={form.siuntejas.pavarde}
-            onChange={(event) => setPartyField('siuntejas', 'pavarde', event.target.value)}
+            value={form.sender.lastName}
+            onChange={(event) => setPartyField('sender', 'lastName', event.target.value)}
           />
         </label>
         <label>
-          <span>Siuntejo tel.</span>
+          <span>Sender phone</span>
           <input
-            value={form.siuntejas.telefonoNr}
-            onChange={(event) => setPartyField('siuntejas', 'telefonoNr', event.target.value)}
+            value={form.sender.phoneNumber}
+            onChange={(event) => setPartyField('sender', 'phoneNumber', event.target.value)}
           />
         </label>
         <label>
-          <span>Siuntejo el. pastas</span>
-          <input
-            type="email"
-            value={form.siuntejas.elPastas}
-            onChange={(event) => setPartyField('siuntejas', 'elPastas', event.target.value)}
-          />
-        </label>
-        <label>
-          <span>Gavejo vardas</span>
-          <input
-            value={form.gavejas.vardas}
-            onChange={(event) => setPartyField('gavejas', 'vardas', event.target.value)}
-          />
-        </label>
-        <label>
-          <span>Gavejo pavarde</span>
-          <input
-            value={form.gavejas.pavarde}
-            onChange={(event) => setPartyField('gavejas', 'pavarde', event.target.value)}
-          />
-        </label>
-        <label>
-          <span>Gavejo tel.</span>
-          <input
-            value={form.gavejas.telefonoNr}
-            onChange={(event) => setPartyField('gavejas', 'telefonoNr', event.target.value)}
-          />
-        </label>
-        <label>
-          <span>Gavejo el. pastas</span>
+          <span>Sender email</span>
           <input
             type="email"
-            value={form.gavejas.elPastas}
-            onChange={(event) => setPartyField('gavejas', 'elPastas', event.target.value)}
+            value={form.sender.email}
+            onChange={(event) => setPartyField('sender', 'email', event.target.value)}
           />
         </label>
         <label>
-          <span>Siuntimo adresas</span>
+          <span>Receiver first name</span>
           <input
-            value={form.siuntimoAdresas}
-            onChange={(event) => setForm({ ...form, siuntimoAdresas: event.target.value })}
+            value={form.receiver.firstName}
+            onChange={(event) => setPartyField('receiver', 'firstName', event.target.value)}
           />
         </label>
         <label>
-          <span>Gavimo adresas</span>
+          <span>Receiver last name</span>
           <input
-            value={form.gavimoAdresas}
-            onChange={(event) => setForm({ ...form, gavimoAdresas: event.target.value })}
+            value={form.receiver.lastName}
+            onChange={(event) => setPartyField('receiver', 'lastName', event.target.value)}
           />
         </label>
         <label>
-          <span>Dydis</span>
+          <span>Receiver phone</span>
+          <input
+            value={form.receiver.phoneNumber}
+            onChange={(event) => setPartyField('receiver', 'phoneNumber', event.target.value)}
+          />
+        </label>
+        <label>
+          <span>Receiver email</span>
+          <input
+            type="email"
+            value={form.receiver.email}
+            onChange={(event) => setPartyField('receiver', 'email', event.target.value)}
+          />
+        </label>
+        <label>
+          <span>Dispatch address</span>
+          <input
+            value={form.dispatchAddress}
+            onChange={(event) => setForm({ ...form, dispatchAddress: event.target.value })}
+          />
+        </label>
+        <label>
+          <span>Destination address</span>
+          <input
+            value={form.destinationAddress}
+            onChange={(event) => setForm({ ...form, destinationAddress: event.target.value })}
+          />
+        </label>
+        <label>
+          <span>Size</span>
           <select
-            value={form.dydis}
-            onChange={(event) => setForm({ ...form, dydis: event.target.value as Shipment['dydis'] })}
+            value={form.size}
+            onChange={(event) => setForm({ ...form, size: event.target.value as Shipment['size'] })}
           >
             <option value="s">S</option>
             <option value="m">M</option>
@@ -230,22 +230,20 @@ export function ShipmentForm({
           </select>
         </label>
         <label>
-          <span>Data</span>
+          <span>Shipment date</span>
           <input
             type="date"
-            value={form.data}
-            onChange={(event) => setForm({ ...form, data: event.target.value })}
+            value={form.shipmentDate}
+            onChange={(event) => setForm({ ...form, shipmentDate: event.target.value })}
           />
         </label>
 
         {mode === 'edit' ? (
           <label>
-            <span>Busena</span>
+            <span>Status</span>
             <select
-              value={form.busena}
-              onChange={(event) =>
-                setForm({ ...form, busena: event.target.value as ShipmentStatus })
-              }
+              value={form.status}
+              onChange={(event) => setForm({ ...form, status: event.target.value as ShipmentStatus })}
             >
               {statuses.map((status) => (
                 <option key={status} value={status}>
@@ -257,21 +255,21 @@ export function ShipmentForm({
         ) : null}
 
         <label className="checkbox-label">
-          <span>Apmokama pastomate</span>
+          <span>Payment at locker</span>
           <input
             type="checkbox"
-            checked={form.apmokamasPastomate}
-            onChange={(event) => setForm({ ...form, apmokamasPastomate: event.target.checked })}
+            checked={form.paymentAtLocker}
+            onChange={(event) => setForm({ ...form, paymentAtLocker: event.target.checked })}
           />
         </label>
       </div>
 
       <div className="form-actions">
         <button type="button" onClick={() => void submit()}>
-          {mode === 'create' ? 'Sukurti' : 'Issaugoti'}
+          {mode === 'create' ? 'Create' : 'Save'}
         </button>
         <button type="button" onClick={onCancel}>
-          Atsaukti
+          Cancel
         </button>
       </div>
     </section>

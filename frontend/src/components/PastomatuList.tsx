@@ -1,28 +1,28 @@
-import type { PastomatasListItem } from '../models/pastomatas';
+import type { LockerListItem } from '../models/pastomatas';
 
-type PastomatuListProps = {
+type LockerListProps = {
   activeId?: number;
-  items: PastomatasListItem[];
+  items: LockerListItem[];
   onSelect: (id: number) => void;
 };
 
-export function PastomatuList({ activeId, items, onSelect }: PastomatuListProps) {
+export function LockerList({ activeId, items, onSelect }: LockerListProps) {
   if (items.length === 0) {
-    return <p className="empty-state">Paštomatų pagal pasirinktus filtrus nėra.</p>;
+    return <p className="empty-state">No lockers match the current filters.</p>;
   }
 
   return (
     <div className="locker-list">
-      {items.map((pastomatas) => (
+      {items.map((locker) => (
         <button
-          key={pastomatas.id}
-          className={pastomatas.id === activeId ? 'active' : ''}
+          key={locker.id}
+          className={locker.id === activeId ? 'active' : ''}
           type="button"
-          onClick={() => onSelect(pastomatas.id)}
+          onClick={() => onSelect(locker.id)}
         >
-          <span>{pastomatas.adresas}</span>
+          <span>{locker.address}</span>
           <small>
-            {pastomatas.busena} · {pastomatas.skyriuSkaicius} skyr.
+            {locker.status} · {locker.cellCount} cells
           </small>
         </button>
       ))}

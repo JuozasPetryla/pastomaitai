@@ -1,98 +1,131 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from './client';
 import type {
-  Pastomatas,
-  PastomatasCreatePayload,
-  PastomatasListItem,
-  PastomatasUpdatePayload,
-  PastomatoBusena,
-  SiuntosDydis,
+  Locker,
+  LockerCreatePayload,
+  LockerListItem,
+  LockerUpdatePayload,
+  LockerStatus,
+  LockerCellSize,
 } from '../models/pastomatas';
 
-type PastomatasListItemResponse = {
+type ApiLockerStatus = 'aktyvus' | 'neaktyvus' | 'negali_spausdinti' | 'panaikintas';
+
+type LockerListItemResponse = {
   id: number;
   adresas: string;
-  busena: PastomatoBusena;
+  busena: ApiLockerStatus;
   produkto_kodas: string;
   skyriu_skaicius: number;
 };
 
-type PastomatoSkyriusResponse = {
+type LockerCellResponse = {
   id: number;
-  dydis: SiuntosDydis;
+  dydis: LockerCellSize;
   numeris: number;
 };
 
-type PastomatasResponse = PastomatasListItemResponse & {
+type LockerResponse = LockerListItemResponse & {
   created_at: string;
   updated_at: string;
-  skyriai: PastomatoSkyriusResponse[];
+  skyriai: LockerCellResponse[];
 };
 
-function toListItem(response: PastomatasListItemResponse): PastomatasListItem {
+const lockerStatusFromApi: Record<ApiLockerStatus, LockerStatus> = {
+  aktyvus: 'active',
+  neaktyvus: 'inactive',
+  negali_spausdinti: 'printing_disabled',
+  panaikintas: 'deleted',
+};
+
+const lockerStatusToApi: Record<LockerStatus, ApiLockerStatus> = {
+  active: 'aktyvus',
+  inactive: 'neaktyvus',
+  printing_disabled: 'negali_spausdinti',
+  deleted: 'panaikintas',
+};
+
+function toListItem(response: LockerListItemResponse): LockerListItem {
   return {
     id: response.id,
-    adresas: response.adresas,
-    busena: response.busena,
-    produktoKodas: response.produkto_kodas,
-    skyriuSkaicius: response.skyriu_skaicius,
+    address: response.adresas,
+    status: lockerStatusFromApi[response.busena],
+    productCode: response.produkto_kodas,
+    cellCount: response.skyriu_skaicius,
   };
 }
 
-function toPastomatas(response: PastomatasResponse): Pastomatas {
+function toLocker(response: LockerResponse): Locker {
   return {
     ...toListItem(response),
     createdAt: response.created_at,
     updatedAt: response.updated_at,
-    skyriai: response.skyriai,
+    cells: response.skyriai.map((cell) => ({
+      id: cell.id,
+      size: cell.dydis,
+      number: cell.numeris,
+    })),
   };
 }
 
-export async function fetchPastomatai(params: {
-  regionas?: string;
-  busena?: PastomatoBusena;
-}): Promise<PastomatasListItem[]> {
+export async function fetchLockers(params: {
+  region?: string;
+  status?: LockerStatus;
+}): Promise<LockerListItem[]> {
   const searchParams = new URLSearchParams();
 
-  if (params.regionas) {
-    searchParams.set('regionas', params.regionas);
+  if (params.region) {
+    searchParams.set('region', params.region);
   }
 
-  if (params.busena) {
-    searchParams.set('busena', params.busena);
+  if (params.status) {
+    searchParams.set('status', lockerStatusToApi[params.status]);
   }
 
   const query = searchParams.toString();
-  const response = await apiGet<PastomatasListItemResponse[]>(
-    `/api/administration/pastomatai${query ? `?${query}` : ''}`,
+  const response = await apiGet<LockerListItemResponse[]>(
+    `/api/administration/lockers${query ? `?${query}` : ''}`,
   );
 
   return response.map(toListItem);
 }
 
-export async function fetchPastomatas(id: number): Promise<Pastomatas> {
-  const response = await apiGet<PastomatasResponse>(`/api/administration/pastomatai/${id}`);
-  return toPastomatas(response);
+export async function fetchLocker(id: number): Promise<Locker> {
+  const response = await apiGet<LockerResponse>(`/api/administration/lockers/${id}`);
+  return toLocker(response);
 }
 
-export async function createPastomatas(payload: PastomatasCreatePayload): Promise<Pastomatas> {
-  const response = await apiPost<PastomatasResponse, PastomatasCreatePayload>(
-    '/api/administration/pastomatai',
-    payload,
-  );
-  return toPastomatas(response);
+export async function createLocker(payload: LockerCreatePayload): Promise<Locker> {
+  const response = await apiPost<
+    LockerResponse,
+    {
+      adresas: string;
+      produkto_kodas: string;
+      skyriai: Array<{ dydis: LockerCellSize; kiekis: number }>;
+    }
+  >('/api/administration/lockers', {
+    adresas: payload.address,
+    produkto_kodas: payload.productCode,
+    skyriai: payload.cellGroups.map((group) => ({ dydis: group.size, kiekis: group.quantity })),
+  });
+  return toLocker(response);
 }
 
-export async function updatePastomatas(
-  id: number,
-  payload: PastomatasUpdatePayload,
-): Promise<Pastomatas> {
-  const response = await apiPatch<PastomatasResponse, PastomatasUpdatePayload>(
-    `/api/administration/pastomatai/${id}`,
-    payload,
-  );
-  return toPastomatas(response);
+export async function updateLocker(id: number, payload: LockerUpdatePayload): Promise<Locker> {
+  const response = await apiPatch<
+    LockerResponse,
+    {
+      adresas?: string;
+      busena?: ApiLockerStatus;
+      produkto_kodas?: string;
+    }
+  >(`/api/administration/lockers/${id}`, {
+    ...(payload.address ? { adresas: payload.address } : {}),
+    ...(payload.status ? { busena: lockerStatusToApi[payload.status] } : {}),
+    ...(payload.productCode ? { produkto_kodas: payload.productCode } : {}),
+  });
+  return toLocker(response);
 }
 
-export async function deletePastomatas(id: number): Promise<void> {
-  await apiDelete(`/api/administration/pastomatai/${id}`);
+export async function deleteLocker(id: number): Promise<void> {
+  await apiDelete(`/api/administration/lockers/${id}`);
 }

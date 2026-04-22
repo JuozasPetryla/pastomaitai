@@ -1,18 +1,18 @@
 import type { Shipment, ShipmentStatus } from '../models/shipment';
 
 const statusLabels: Record<ShipmentStatus, string> = {
-  parengta: 'Parengta',
-  apmoketa: 'Apmoketa',
-  uzregistruota: 'Uzregistruota',
-  ideta: 'Ideta',
-  tranzite: 'Tranzite',
-  pristatyta: 'Pristatyta',
-  atsiimta: 'Atsiimta',
-  atsaukta: 'Atsaukta',
+  prepared: 'Prepared',
+  paid: 'Paid',
+  registered: 'Registered',
+  inserted: 'Inserted',
+  in_transit: 'In transit',
+  delivered: 'Delivered',
+  collected: 'Collected',
+  cancelled: 'Cancelled',
 };
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('lt-LT');
+  return new Date(dateStr).toLocaleString('en-GB');
 }
 
 type ShipmentDetailsProps = {
@@ -21,63 +21,63 @@ type ShipmentDetailsProps = {
 
 export function ShipmentDetails({ shipment }: ShipmentDetailsProps) {
   if (!shipment) {
-    return <p className="empty-state">Pasirinkite siunta informacijai perziureti.</p>;
+    return <p className="empty-state">Select a shipment to view details.</p>;
   }
 
   return (
     <article className="detail-panel">
       <header>
-        <p>{statusLabels[shipment.busena]}</p>
-        <h3>{shipment.siuntosKodas}</h3>
+        <p>{statusLabels[shipment.status]}</p>
+        <h3>{shipment.shipmentCode}</h3>
       </header>
 
       <dl>
         <div>
-          <dt>Uzsakymo numeris</dt>
-          <dd>{shipment.uzsakymoNr}</dd>
+          <dt>Order number</dt>
+          <dd>{shipment.orderNumber}</dd>
         </div>
         <div>
-          <dt>Siuntejas</dt>
+          <dt>Sender</dt>
           <dd>
-            {shipment.siuntejas.vardas} {shipment.siuntejas.pavarde}
+            {shipment.sender.firstName} {shipment.sender.lastName}
           </dd>
         </div>
         <div>
-          <dt>Gavejas</dt>
+          <dt>Receiver</dt>
           <dd>
-            {shipment.gavejas.vardas} {shipment.gavejas.pavarde}
+            {shipment.receiver.firstName} {shipment.receiver.lastName}
           </dd>
         </div>
         <div>
-          <dt>Siuntimo adresas</dt>
-          <dd>{shipment.siuntimoAdresas}</dd>
+          <dt>Dispatch address</dt>
+          <dd>{shipment.dispatchAddress}</dd>
         </div>
         <div>
-          <dt>Gavimo adresas</dt>
-          <dd>{shipment.gavimoAdresas}</dd>
+          <dt>Destination address</dt>
+          <dd>{shipment.destinationAddress}</dd>
         </div>
         <div>
-          <dt>Dydis</dt>
-          <dd>{shipment.dydis.toUpperCase()}</dd>
+          <dt>Size</dt>
+          <dd>{shipment.size.toUpperCase()}</dd>
         </div>
         <div>
-          <dt>Suma</dt>
-          <dd>{shipment.suma.toFixed(2)} EUR</dd>
+          <dt>Amount</dt>
+          <dd>{shipment.amount.toFixed(2)} EUR</dd>
         </div>
         <div>
-          <dt>Apmokejimas</dt>
-          <dd>{shipment.apmokamasPastomate ? 'Pastomate' : 'Internetu'}</dd>
+          <dt>Payment</dt>
+          <dd>{shipment.paymentAtLocker ? 'At locker' : 'Online'}</dd>
         </div>
         <div>
-          <dt>Data</dt>
-          <dd>{shipment.data}</dd>
+          <dt>Shipment date</dt>
+          <dd>{shipment.shipmentDate}</dd>
         </div>
         <div>
-          <dt>Sukurta</dt>
+          <dt>Created</dt>
           <dd>{formatDate(shipment.createdAt)}</dd>
         </div>
         <div>
-          <dt>Atnaujinta</dt>
+          <dt>Updated</dt>
           <dd>{formatDate(shipment.updatedAt)}</dd>
         </div>
       </dl>

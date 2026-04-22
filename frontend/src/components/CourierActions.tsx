@@ -14,15 +14,15 @@ export function CourierActions({
   onDelete,
 }: CourierActionsProps) {
   return (
-    <div className="admin-actions" aria-label="Kurjerio valdymo veiksmai">
+    <div className="admin-actions" aria-label="Courier actions">
       <button type="button" onClick={onCreate}>
-        Kurti kurjeri
+        Create courier
       </button>
       <button type="button" disabled={!canEdit} onClick={onEdit}>
-        Redaguoti kurjeri
+        Edit courier
       </button>
       <button type="button" disabled={!canDelete} onClick={onDelete}>
-        Naikinti kurjeri
+        Delete courier
       </button>
     </div>
   );

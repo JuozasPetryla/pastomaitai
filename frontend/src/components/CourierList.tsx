@@ -8,7 +8,7 @@ type CourierListProps = {
 
 export function CourierList({ activeId, items, onSelect }: CourierListProps) {
   if (items.length === 0) {
-    return <p className="empty-state">Kurjeriu pagal pasirinktus filtrus nera.</p>;
+    return <p className="empty-state">No couriers match the current filters.</p>;
   }
 
   return (
@@ -21,10 +21,10 @@ export function CourierList({ activeId, items, onSelect }: CourierListProps) {
           onClick={() => onSelect(courier.id)}
         >
           <span>
-            {courier.vardas} {courier.pavarde}
+            {courier.firstName} {courier.lastName}
           </span>
           <small>
-            {courier.pareigos} · {courier.telefonoNr}
+            {courier.role} · {courier.phoneNumber}
           </small>
         </button>
       ))}

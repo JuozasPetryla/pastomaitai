@@ -28,12 +28,12 @@ type ModalState = {
   actions: AppModalAction[];
 };
 
-export function ShipmentsCrudView() {
-  const [filters, setFilters] = useState<ShipmentFiltersType>({ siuntosKodas: '', busena: '' });
+export function ShipmentsView() {
+  const [filters, setFilters] = useState<ShipmentFiltersType>({ shipmentCode: '', status: '' });
   const [shipments, setShipments] = useState<ShipmentListItem[]>([]);
   const [selectedShipment, setSelectedShipment] = useState<Shipment>();
   const [selectedId, setSelectedId] = useState<number>();
-  const [status, setStatus] = useState('Pasirinkite filtrus arba siunta.');
+  const [statusMessage, setStatusMessage] = useState('Select filters or a shipment.');
   const [formMode, setFormMode] = useState<FormMode>();
   const [modal, setModal] = useState<ModalState>();
 
@@ -41,9 +41,9 @@ export function ShipmentsCrudView() {
 
   const showError = (message: string) => {
     setModal({
-      title: 'Klaida',
+      title: 'Error',
       message,
-      actions: [{ label: 'Uzdaryti', onClick: closeModal, variant: 'primary' }],
+      actions: [{ label: 'Close', onClick: closeModal, variant: 'primary' }],
     });
   };
 
@@ -51,7 +51,7 @@ export function ShipmentsCrudView() {
     nextFilters: ShipmentFiltersType = filters,
   ): Promise<ShipmentListItem[]> => {
     setFilters(nextFilters);
-    setStatus('Kraunamas siuntu sarasas...');
+    setStatusMessage('Loading shipments...');
 
     try {
       const items = await fetchShipments(nextFilters);
@@ -60,26 +60,26 @@ export function ShipmentsCrudView() {
         setSelectedId(undefined);
         setSelectedShipment(undefined);
       }
-      setStatus(items.length ? 'Siuntu sarasas pateiktas.' : 'Sarasas tuscias.');
+      setStatusMessage(items.length ? 'Shipment list loaded.' : 'No shipments found.');
       return items;
     } catch (caught) {
       setShipments([]);
-      showError(caught instanceof Error ? caught.message : 'Nepavyko gauti siuntu saraso.');
-      setStatus('Nepavyko gauti siuntu saraso.');
+      showError(caught instanceof Error ? caught.message : 'Failed to load shipments.');
+      setStatusMessage('Failed to load shipments.');
       return [];
     }
   };
 
   const selectShipment = async (id: number) => {
     setSelectedId(id);
-    setStatus('Kraunama pasirinktos siuntos informacija...');
+    setStatusMessage('Loading shipment details...');
     try {
       setSelectedShipment(await fetchShipment(id));
-      setStatus('Siuntos informacija pateikta.');
+      setStatusMessage('Shipment details loaded.');
     } catch (caught) {
       setSelectedShipment(undefined);
-      showError(caught instanceof Error ? caught.message : 'Nepavyko gauti siuntos informacijos.');
-      setStatus('Nepavyko gauti siuntos informacijos.');
+      showError(caught instanceof Error ? caught.message : 'Failed to load shipment details.');
+      setStatusMessage('Failed to load shipment details.');
     }
   };
 
@@ -90,9 +90,9 @@ export function ShipmentsCrudView() {
       setSelectedShipment(created);
       setFormMode(undefined);
       await loadShipments();
-      setStatus('Siunta sekmingai sukurta.');
+      setStatusMessage('Shipment created successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Siuntos sukurti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to create shipment.');
     }
   };
 
@@ -106,9 +106,9 @@ export function ShipmentsCrudView() {
       setSelectedShipment(updated);
       setFormMode(undefined);
       await loadShipments();
-      setStatus('Siunta sekmingai redaguota.');
+      setStatusMessage('Shipment updated successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Siuntos redaguoti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to update shipment.');
     }
   };
 
@@ -123,26 +123,26 @@ export function ShipmentsCrudView() {
       setSelectedShipment(undefined);
       setFormMode(undefined);
       await loadShipments();
-      setStatus('Siunta sekmingai panaikinta.');
+      setStatusMessage('Shipment deleted successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Siuntos panaikinti nepavyko.');
-      setStatus(caught instanceof Error ? caught.message : 'Siuntos panaikinti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to delete shipment.');
+      setStatusMessage(caught instanceof Error ? caught.message : 'Failed to delete shipment.');
     }
   };
 
   const requestDelete = () => {
     if (!selectedShipment) {
-      showError('Pasirinkite siunta, kuria norite naikinti.');
+      showError('Select a shipment to delete.');
       return;
     }
 
     setModal({
-      title: 'Naikinti siunta?',
-      message: `Siunta "${selectedShipment.siuntosKodas}" bus visam laikui istrinta.`,
+      title: 'Delete shipment?',
+      message: `Shipment "${selectedShipment.shipmentCode}" will be permanently removed.`,
       actions: [
-        { label: 'Atsaukti', onClick: closeModal, variant: 'secondary' },
+        { label: 'Cancel', onClick: closeModal, variant: 'secondary' },
         {
-          label: 'Naikinti',
+          label: 'Delete',
           variant: 'danger',
           onClick: () => {
             closeModal();
@@ -160,7 +160,7 @@ export function ShipmentsCrudView() {
 
     return () => window.clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.siuntosKodas, filters.busena]);
+  }, [filters.shipmentCode, filters.status]);
 
   return (
     <div className="admin-workflow">
@@ -185,12 +185,12 @@ export function ShipmentsCrudView() {
       ) : null}
 
       <div className="admin-grid">
-        <section aria-label="Siuntu sarasas">
-          <p className="workflow-status">{status}</p>
+        <section aria-label="Shipment list">
+          <p className="workflow-status">{statusMessage}</p>
           <ShipmentList activeId={selectedId} items={shipments} onSelect={selectShipment} />
         </section>
 
-        <section aria-label="Pasirinktos siuntos informacija">
+        <section aria-label="Selected shipment details">
           <ShipmentDetails shipment={selectedShipment} />
         </section>
       </div>

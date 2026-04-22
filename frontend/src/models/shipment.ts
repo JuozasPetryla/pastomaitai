@@ -1,72 +1,72 @@
 export type ShipmentStatus =
-  | 'parengta'
-  | 'apmoketa'
-  | 'uzregistruota'
-  | 'ideta'
-  | 'tranzite'
-  | 'pristatyta'
-  | 'atsiimta'
-  | 'atsaukta';
+  | 'prepared'
+  | 'paid'
+  | 'registered'
+  | 'inserted'
+  | 'in_transit'
+  | 'delivered'
+  | 'collected'
+  | 'cancelled';
 
 export type ShipmentSize = 's' | 'm' | 'l';
 
 export type ShipmentParty = {
-  asmuoId: number;
-  vardas: string;
-  pavarde: string;
-  telefonoNr: string;
-  elPastas: string;
+  personId: number;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  email: string;
 };
 
-export type ShipmentPartyInput = Omit<ShipmentParty, 'asmuoId'>;
+export type ShipmentPartyInput = Omit<ShipmentParty, 'personId'>;
 
 export type ShipmentListItem = {
   id: number;
-  siuntosKodas: string;
-  busena: ShipmentStatus;
-  dydis: ShipmentSize;
-  siuntimoAdresas: string;
-  gavimoAdresas: string;
-  data: string;
+  shipmentCode: string;
+  status: ShipmentStatus;
+  size: ShipmentSize;
+  dispatchAddress: string;
+  destinationAddress: string;
+  shipmentDate: string;
   createdAt: string;
-  siuntejas: string;
-  gavejas: string;
+  sender: string;
+  receiver: string;
 };
 
 export type Shipment = {
   id: number;
-  uzsakymoNr: number;
-  siuntosKodas: string;
-  dydis: ShipmentSize;
-  gavimoAdresas: string;
-  siuntimoAdresas: string;
-  data: string;
-  busena: ShipmentStatus;
-  suma: number;
-  saskaita: string | null;
-  apmokamasPastomate: boolean;
-  pastomatoSkyriausId: number | null;
+  orderNumber: number;
+  shipmentCode: string;
+  size: ShipmentSize;
+  destinationAddress: string;
+  dispatchAddress: string;
+  shipmentDate: string;
+  status: ShipmentStatus;
+  amount: number;
+  invoice: string | null;
+  paymentAtLocker: boolean;
+  lockerCellId: number | null;
   createdAt: string;
   updatedAt: string;
-  siuntejas: ShipmentParty;
-  gavejas: ShipmentParty;
+  sender: ShipmentParty;
+  receiver: ShipmentParty;
 };
 
 export type ShipmentFilters = {
-  siuntosKodas: string;
-  busena: ShipmentStatus | '';
+  shipmentCode: string;
+  status: ShipmentStatus | '';
 };
 
 export type ShipmentCreatePayload = {
-  siuntejas: ShipmentPartyInput;
-  gavejas: ShipmentPartyInput;
-  dydis: ShipmentSize;
-  gavimoAdresas: string;
-  siuntimoAdresas: string;
-  data?: string;
-  apmokamasPastomate: boolean;
+  sender: ShipmentPartyInput;
+  receiver: ShipmentPartyInput;
+  size: ShipmentSize;
+  destinationAddress: string;
+  dispatchAddress: string;
+  shipmentDate?: string;
+  paymentAtLocker: boolean;
 };
 
 export type ShipmentUpdatePayload = Partial<ShipmentCreatePayload> & {
-  busena?: ShipmentStatus;
+  status?: ShipmentStatus;
 };

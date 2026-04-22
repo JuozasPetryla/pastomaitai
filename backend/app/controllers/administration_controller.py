@@ -16,48 +16,48 @@ from app.services import administration_service
 router = APIRouter(prefix="/administration", tags=["administration"])
 
 
-@router.get("/pastomatai", response_model=list[PastomatasListItem])
-async def perziureti_pastomatu_sarasa(
+@router.get("/lockers", response_model=list[PastomatasListItem])
+async def list_lockers(
     session: Annotated[AsyncSession, Depends(get_session)],
-    regionas: Annotated[str | None, Query(description="Filtravimas pagal adreso tekstą")] = None,
-    busena: PastomatoBusena | None = None,
+    region: Annotated[str | None, Query(description="Filter by address text")] = None,
+    status_filter: PastomatoBusena | None = Query(default=None, alias="status"),
 ) -> list[PastomatasListItem]:
-    return await administration_service.list_pastomatai(
+    return await administration_service.list_lockers(
         session,
-        regionas=regionas,
-        busena=busena,
+        region=region,
+        status_filter=status_filter,
     )
 
 
-@router.get("/pastomatai/{pastomatas_id}", response_model=PastomatasRead)
-async def pateikti_pasirinkto_pastomato_informacija(
-    pastomatas_id: int,
+@router.get("/lockers/{locker_id}", response_model=PastomatasRead)
+async def get_locker_details(
+    locker_id: int,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> PastomatasRead:
-    return await administration_service.get_pastomatas(session, pastomatas_id)
+    return await administration_service.get_locker(session, locker_id)
 
 
-@router.post("/pastomatai", response_model=PastomatasRead, status_code=status.HTTP_201_CREATED)
-async def kurti_pastomata(
+@router.post("/lockers", response_model=PastomatasRead, status_code=status.HTTP_201_CREATED)
+async def create_locker(
     payload: PastomatasCreate,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> PastomatasRead:
-    return await administration_service.create_pastomatas(session, payload)
+    return await administration_service.create_locker(session, payload)
 
 
-@router.patch("/pastomatai/{pastomatas_id}", response_model=PastomatasRead)
-async def redaguoti_pastomata(
-    pastomatas_id: int,
+@router.patch("/lockers/{locker_id}", response_model=PastomatasRead)
+async def update_locker(
+    locker_id: int,
     payload: PastomatasUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> PastomatasRead:
-    return await administration_service.update_pastomatas(session, pastomatas_id, payload)
+    return await administration_service.update_locker(session, locker_id, payload)
 
 
-@router.delete("/pastomatai/{pastomatas_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def naikinti_pastomata(
-    pastomatas_id: int,
+@router.delete("/lockers/{locker_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_locker(
+    locker_id: int,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Response:
-    await administration_service.delete_pastomatas(session, pastomatas_id)
+    await administration_service.delete_locker(session, locker_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

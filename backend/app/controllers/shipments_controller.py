@@ -12,20 +12,20 @@ router = APIRouter(prefix="/shipments", tags=["shipments"])
 
 
 @router.get("", response_model=list[ShipmentListItem])
-async def perziureti_siuntu_sarasa(
+async def list_shipments(
     session: Annotated[AsyncSession, Depends(get_session)],
-    siuntos_kodas: Annotated[str | None, Query(description="Filtravimas pagal siuntos koda")] = None,
-    busena: SiuntosBusena | None = None,
+    shipment_code: Annotated[str | None, Query(description="Filter by shipment code")] = None,
+    status_filter: SiuntosBusena | None = Query(default=None, alias="status"),
 ) -> list[ShipmentListItem]:
     return await shipment_service.list_shipments(
         session,
-        siuntos_kodas=siuntos_kodas,
-        busena=busena,
+        shipment_code=shipment_code,
+        status_filter=status_filter,
     )
 
 
 @router.get("/{shipment_id}", response_model=ShipmentResponse)
-async def pateikti_pasirinktos_siuntos_informacija(
+async def get_shipment_details(
     shipment_id: int,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> ShipmentResponse:
@@ -33,7 +33,7 @@ async def pateikti_pasirinktos_siuntos_informacija(
 
 
 @router.post("", response_model=ShipmentResponse, status_code=status.HTTP_201_CREATED)
-async def kurti_siunta(
+async def create_shipment(
     payload: ShipmentCreate,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> ShipmentResponse:
@@ -41,7 +41,7 @@ async def kurti_siunta(
 
 
 @router.patch("/{shipment_id}", response_model=ShipmentResponse)
-async def redaguoti_siunta(
+async def update_shipment(
     shipment_id: int,
     payload: ShipmentUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -50,7 +50,7 @@ async def redaguoti_siunta(
 
 
 @router.delete("/{shipment_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def naikinti_siunta(
+async def delete_shipment(
     shipment_id: int,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Response:

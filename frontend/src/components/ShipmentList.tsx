@@ -1,18 +1,18 @@
 import type { ShipmentListItem, ShipmentStatus } from '../models/shipment';
 
 const statusLabels: Record<ShipmentStatus, string> = {
-  parengta: 'Parengta',
-  apmoketa: 'Apmoketa',
-  uzregistruota: 'Uzregistruota',
-  ideta: 'Ideta',
-  tranzite: 'Tranzite',
-  pristatyta: 'Pristatyta',
-  atsiimta: 'Atsiimta',
-  atsaukta: 'Atsaukta',
+  prepared: 'Prepared',
+  paid: 'Paid',
+  registered: 'Registered',
+  inserted: 'Inserted',
+  in_transit: 'In transit',
+  delivered: 'Delivered',
+  collected: 'Collected',
+  cancelled: 'Cancelled',
 };
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('lt-LT');
+  return new Date(dateStr).toLocaleDateString('en-GB');
 }
 
 type ShipmentListProps = {
@@ -23,7 +23,7 @@ type ShipmentListProps = {
 
 export function ShipmentList({ activeId, items, onSelect }: ShipmentListProps) {
   if (items.length === 0) {
-    return <p className="empty-state">Siuntu pagal pasirinktus filtrus nera.</p>;
+    return <p className="empty-state">No shipments match the current filters.</p>;
   }
 
   return (
@@ -36,10 +36,10 @@ export function ShipmentList({ activeId, items, onSelect }: ShipmentListProps) {
           onClick={() => onSelect(shipment.id)}
         >
           <span>
-            {shipment.siuntosKodas} · {shipment.siuntejas}
+            {shipment.shipmentCode} · {shipment.sender}
           </span>
           <small>
-            {statusLabels[shipment.busena]} · {shipment.dydis.toUpperCase()} ·{' '}
+            {statusLabels[shipment.status]} · {shipment.size.toUpperCase()} ·{' '}
             {formatDate(shipment.createdAt)}
           </small>
         </button>

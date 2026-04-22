@@ -1,42 +1,42 @@
-export type PastomatoBusena = 'aktyvus' | 'neaktyvus' | 'negali_spausdinti' | 'panaikintas';
-export type SiuntosDydis = 's' | 'm' | 'l';
+export type LockerStatus = 'active' | 'inactive' | 'printing_disabled' | 'deleted';
+export type LockerCellSize = 's' | 'm' | 'l';
 
-export type PastomatasListItem = {
+export type LockerListItem = {
   id: number;
-  adresas: string;
-  busena: PastomatoBusena;
-  produktoKodas: string;
-  skyriuSkaicius: number;
+  address: string;
+  status: LockerStatus;
+  productCode: string;
+  cellCount: number;
 };
 
-export type PastomatoSkyrius = {
+export type LockerCell = {
   id: number;
-  dydis: SiuntosDydis;
-  numeris: number;
+  size: LockerCellSize;
+  number: number;
 };
 
-export type Pastomatas = PastomatasListItem & {
+export type Locker = LockerListItem & {
   createdAt: string;
   updatedAt: string;
-  skyriai: PastomatoSkyrius[];
+  cells: LockerCell[];
 };
 
-export type PastomatuFiltrai = {
-  regionas: string;
-  busena: PastomatoBusena | '';
+export type LockerFilters = {
+  region: string;
+  status: LockerStatus | '';
 };
 
-export type PastomatasCreatePayload = {
-  adresas: string;
-  produkto_kodas: string;
-  skyriai: Array<{
-    dydis: SiuntosDydis;
-    kiekis: number;
+export type LockerCreatePayload = {
+  address: string;
+  productCode: string;
+  cellGroups: Array<{
+    size: LockerCellSize;
+    quantity: number;
   }>;
 };
 
-export type PastomatasUpdatePayload = {
-  adresas?: string;
-  busena?: PastomatoBusena;
-  produkto_kodas?: string;
+export type LockerUpdatePayload = {
+  address?: string;
+  status?: LockerStatus;
+  productCode?: string;
 };

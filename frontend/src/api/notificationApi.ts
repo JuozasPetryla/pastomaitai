@@ -1,96 +1,136 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from './client';
 import type {
-  Pranesimas,
-  PranesimasCreatePayload,
-  PranesimasListItem,
-  PranesimasUpdatePayload,
-  PranesimoTipas,
+  Notification,
+  NotificationCreatePayload,
+  NotificationListItem,
+  NotificationType,
+  NotificationUpdatePayload,
 } from '../models/pranesimas';
 
-type PranesimasListItemResponse = {
+type ApiNotificationType = 'sms' | 'el_pastas';
+
+type NotificationListItemResponse = {
   id: number;
   asmuo_id: number;
-  tipas: PranesimoTipas;
+  tipas: ApiNotificationType;
   issiustas: boolean;
   issiuntimo_operatoriui_data: string | null;
   created_at: string;
 };
 
-type PranesimasResponse = PranesimasListItemResponse & {
+type NotificationResponse = NotificationListItemResponse & {
   tekstas: string;
   operatoriaus_atsako_data: string | null;
 };
 
-function toListItem(response: PranesimasListItemResponse): PranesimasListItem {
+const notificationTypeFromApi: Record<ApiNotificationType, NotificationType> = {
+  sms: 'sms',
+  el_pastas: 'email',
+};
+
+const notificationTypeToApi: Record<NotificationType, ApiNotificationType> = {
+  sms: 'sms',
+  email: 'el_pastas',
+};
+
+function toListItem(response: NotificationListItemResponse): NotificationListItem {
   return {
     id: response.id,
-    asmuo_id: response.asmuo_id,
-    tipas: response.tipas,
-    issiustas: response.issiustas,
-    issiuntimo_operatoriui_data: response.issiuntimo_operatoriui_data,
-    created_at: response.created_at,
+    personId: response.asmuo_id,
+    type: notificationTypeFromApi[response.tipas],
+    isSent: response.issiustas,
+    sentToProviderAt: response.issiuntimo_operatoriui_data,
+    createdAt: response.created_at,
   };
 }
 
-function toPranesimas(response: PranesimasResponse): Pranesimas {
+function toNotification(response: NotificationResponse): Notification {
   return {
     ...toListItem(response),
-    tekstas: response.tekstas,
-    operatoriaus_atsako_data: response.operatoriaus_atsako_data,
+    message: response.tekstas,
+    providerResponseAt: response.operatoriaus_atsako_data,
   };
 }
 
-export async function fetchPranesimai(params: {
-  asmuo_id?: number;
-  tipas?: PranesimoTipas;
-  issiustas?: boolean;
-}): Promise<PranesimasListItem[]> {
+export async function fetchNotifications(params: {
+  personId?: number;
+  type?: NotificationType;
+  isSent?: boolean;
+}): Promise<NotificationListItem[]> {
   const searchParams = new URLSearchParams();
 
-  if (params.asmuo_id !== undefined) {
-    searchParams.set('asmuo_id', String(params.asmuo_id));
+  if (params.personId !== undefined) {
+    searchParams.set('person_id', String(params.personId));
   }
 
-  if (params.tipas) {
-    searchParams.set('tipas', params.tipas);
+  if (params.type) {
+    searchParams.set('type', notificationTypeToApi[params.type]);
   }
 
-  if (params.issiustas !== undefined) {
-    searchParams.set('issiustas', String(params.issiustas));
+  if (params.isSent !== undefined) {
+    searchParams.set('is_sent', String(params.isSent));
   }
 
   const query = searchParams.toString();
-  const response = await apiGet<PranesimasListItemResponse[]>(
-    `/api/notifications/pranesimai${query ? `?${query}` : ''}`,
+  const response = await apiGet<NotificationListItemResponse[]>(
+    `/api/notifications${query ? `?${query}` : ''}`,
   );
 
   return response.map(toListItem);
 }
 
-export async function fetchPranesimas(id: number): Promise<Pranesimas> {
-  const response = await apiGet<PranesimasResponse>(`/api/notifications/pranesimai/${id}`);
-  return toPranesimas(response);
+export async function fetchNotification(id: number): Promise<Notification> {
+  const response = await apiGet<NotificationResponse>(`/api/notifications/${id}`);
+  return toNotification(response);
 }
 
-export async function createPranesimas(payload: PranesimasCreatePayload): Promise<Pranesimas> {
-  const response = await apiPost<PranesimasResponse, PranesimasCreatePayload>(
-    '/api/notifications/pranesimai',
-    payload,
-  );
-  return toPranesimas(response);
+export async function createNotification(
+  payload: NotificationCreatePayload,
+): Promise<Notification> {
+  const response = await apiPost<
+    NotificationResponse,
+    {
+      asmuo_id: number;
+      tekstas: string;
+      tipas: ApiNotificationType;
+      issiuntimo_operatoriui_data?: string | null;
+    }
+  >('/api/notifications', {
+    asmuo_id: payload.personId,
+    tekstas: payload.message,
+    tipas: notificationTypeToApi[payload.type],
+    issiuntimo_operatoriui_data: payload.sentToProviderAt,
+  });
+  return toNotification(response);
 }
 
-export async function updatePranesimas(
+export async function updateNotification(
   id: number,
-  payload: PranesimasUpdatePayload,
-): Promise<Pranesimas> {
-  const response = await apiPatch<PranesimasResponse, PranesimasUpdatePayload>(
-    `/api/notifications/pranesimai/${id}`,
-    payload,
-  );
-  return toPranesimas(response);
+  payload: NotificationUpdatePayload,
+): Promise<Notification> {
+  const response = await apiPatch<
+    NotificationResponse,
+    {
+      tekstas?: string;
+      tipas?: ApiNotificationType;
+      issiuntimo_operatoriui_data?: string | null;
+      operatoriaus_atsako_data?: string | null;
+      issiustas?: boolean;
+    }
+  >(`/api/notifications/${id}`, {
+    ...(payload.message ? { tekstas: payload.message } : {}),
+    ...(payload.type ? { tipas: notificationTypeToApi[payload.type] } : {}),
+    ...(payload.sentToProviderAt !== undefined
+      ? { issiuntimo_operatoriui_data: payload.sentToProviderAt }
+      : {}),
+    ...(payload.providerResponseAt !== undefined
+      ? { operatoriaus_atsako_data: payload.providerResponseAt }
+      : {}),
+    ...(payload.isSent !== undefined ? { issiustas: payload.isSent } : {}),
+  });
+  return toNotification(response);
 }
 
-export async function deletePranesimas(id: number): Promise<void> {
-  await apiDelete(`/api/notifications/pranesimai/${id}`);
+export async function deleteNotification(id: number): Promise<void> {
+  await apiDelete(`/api/notifications/${id}`);
 }

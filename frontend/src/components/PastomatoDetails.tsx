@@ -1,36 +1,43 @@
-import type { Pastomatas } from '../models/pastomatas';
+import type { Locker } from '../models/pastomatas';
 
-type PastomatoDetailsProps = {
-  pastomatas?: Pastomatas;
+const statusLabels = {
+  active: 'Active',
+  inactive: 'Inactive',
+  printing_disabled: 'Printing disabled',
+  deleted: 'Deleted',
+} as const;
+
+type LockerDetailsProps = {
+  locker?: Locker;
 };
 
-export function PastomatoDetails({ pastomatas }: PastomatoDetailsProps) {
-  if (!pastomatas) {
-    return <p className="empty-state">Pasirinkite paštomatą informacijai peržiūrėti.</p>;
+export function LockerDetails({ locker }: LockerDetailsProps) {
+  if (!locker) {
+    return <p className="empty-state">Select a locker to view details.</p>;
   }
 
   return (
     <article className="detail-panel">
       <header>
-        <p>{pastomatas.busena}</p>
-        <h3>{pastomatas.adresas}</h3>
+        <p>{statusLabels[locker.status]}</p>
+        <h3>{locker.address}</h3>
       </header>
 
       <dl>
         <div>
-          <dt>Produkto kodas</dt>
-          <dd>{pastomatas.produktoKodas}</dd>
+          <dt>Product code</dt>
+          <dd>{locker.productCode}</dd>
         </div>
         <div>
-          <dt>Skyriai</dt>
-          <dd>{pastomatas.skyriai.length}</dd>
+          <dt>Cells</dt>
+          <dd>{locker.cells.length}</dd>
         </div>
       </dl>
 
       <div className="compartment-list">
-        {pastomatas.skyriai.map((skyrius) => (
-          <span key={skyrius.id}>
-            {skyrius.numeris} · {skyrius.dydis.toUpperCase()}
+        {locker.cells.map((cell) => (
+          <span key={cell.id}>
+            {cell.number} · {cell.size.toUpperCase()}
           </span>
         ))}
       </div>

@@ -14,15 +14,15 @@ export function ShipmentActions({
   onDelete,
 }: ShipmentActionsProps) {
   return (
-    <div className="admin-actions" aria-label="Siuntos valdymo veiksmai">
+    <div className="admin-actions" aria-label="Shipment actions">
       <button type="button" onClick={onCreate}>
-        Kurti siunta
+        Create shipment
       </button>
       <button type="button" disabled={!canEdit} onClick={onEdit}>
-        Redaguoti siunta
+        Edit shipment
       </button>
       <button type="button" disabled={!canDelete} onClick={onDelete}>
-        Naikinti siunta
+        Delete shipment
       </button>
     </div>
   );

@@ -1,150 +1,148 @@
 import { useEffect, useState } from 'react';
 
 import type {
-  Pastomatas,
-  PastomatasCreatePayload,
-  PastomatasUpdatePayload,
-  PastomatoBusena,
-  SiuntosDydis,
+  Locker,
+  LockerCreatePayload,
+  LockerUpdatePayload,
+  LockerStatus,
+  LockerCellSize,
 } from '../models/pastomatas';
 
-type PastomatoFormMode = 'create' | 'edit';
+type LockerFormMode = 'create' | 'edit';
 
-type PastomatoFormProps = {
-  mode: PastomatoFormMode;
-  pastomatas?: Pastomatas;
+type LockerFormProps = {
+  mode: LockerFormMode;
+  locker?: Locker;
   onCancel: () => void;
-  onCreate: (payload: PastomatasCreatePayload) => Promise<void>;
-  onUpdate: (payload: PastomatasUpdatePayload) => Promise<void>;
+  onCreate: (payload: LockerCreatePayload) => Promise<void>;
+  onUpdate: (payload: LockerUpdatePayload) => Promise<void>;
   onError: (message: string) => void;
 };
 
 type FormState = {
-  adresas: string;
-  produktoKodas: string;
-  busena: PastomatoBusena;
-  skyriai: Record<SiuntosDydis, number>;
+  address: string;
+  productCode: string;
+  status: LockerStatus;
+  cells: Record<LockerCellSize, number>;
 };
 
-const busenos: PastomatoBusena[] = ['aktyvus', 'neaktyvus', 'negali_spausdinti', 'panaikintas'];
-const dydziai: SiuntosDydis[] = ['s', 'm', 'l'];
+const statuses: LockerStatus[] = ['active', 'inactive', 'printing_disabled', 'deleted'];
+const sizes: LockerCellSize[] = ['s', 'm', 'l'];
 
-function getInitialState(mode: PastomatoFormMode, pastomatas?: Pastomatas): FormState {
+function getInitialState(mode: LockerFormMode, locker?: Locker): FormState {
   return {
-    adresas: pastomatas?.adresas ?? '',
-    produktoKodas: pastomatas?.produktoKodas ?? '',
-    busena: pastomatas?.busena ?? 'neaktyvus',
-    skyriai: {
-      s: pastomatas?.skyriai.filter((skyrius) => skyrius.dydis === 's').length ?? 2,
-      m: pastomatas?.skyriai.filter((skyrius) => skyrius.dydis === 'm').length ?? 6,
-      l: pastomatas?.skyriai.filter((skyrius) => skyrius.dydis === 'l').length ?? 2,
+    address: locker?.address ?? '',
+    productCode: locker?.productCode ?? '',
+    status: locker?.status ?? 'inactive',
+    cells: {
+      s: locker?.cells.filter((cell) => cell.size === 's').length ?? 2,
+      m: locker?.cells.filter((cell) => cell.size === 'm').length ?? 6,
+      l: locker?.cells.filter((cell) => cell.size === 'l').length ?? 2,
     },
   };
 }
 
-export function PastomatoForm({
+export function LockerForm({
   mode,
-  pastomatas,
+  locker,
   onCancel,
   onCreate,
   onUpdate,
   onError,
-}: PastomatoFormProps) {
-  const [form, setForm] = useState<FormState>(() => getInitialState(mode, pastomatas));
+}: LockerFormProps) {
+  const [form, setForm] = useState<FormState>(() => getInitialState(mode, locker));
 
   useEffect(() => {
-    setForm(getInitialState(mode, pastomatas));
-  }, [mode, pastomatas]);
+    setForm(getInitialState(mode, locker));
+  }, [mode, locker]);
 
   const submit = async () => {
-    if (form.adresas.trim().length < 3 || form.produktoKodas.trim().length < 2) {
-      onError('Patikrinkite adresą ir produkto kodą.');
+    if (form.address.trim().length < 3 || form.productCode.trim().length < 2) {
+      onError('Check the address and product code.');
       return;
     }
 
     if (mode === 'create') {
-      const skyriai = dydziai
-        .map((dydis) => ({ dydis, kiekis: form.skyriai[dydis] }))
-        .filter((grupe) => grupe.kiekis > 0);
+      const cellGroups = sizes
+        .map((size) => ({ size, quantity: form.cells[size] }))
+        .filter((group) => group.quantity > 0);
 
-      if (skyriai.length === 0) {
-        onError('Reikia pridėti bent vieną skyrių.');
+      if (cellGroups.length === 0) {
+        onError('Add at least one locker cell.');
         return;
       }
 
       await onCreate({
-        adresas: form.adresas.trim(),
-        produkto_kodas: form.produktoKodas.trim(),
-        skyriai,
+        address: form.address.trim(),
+        productCode: form.productCode.trim(),
+        cellGroups,
       });
       return;
     }
 
     await onUpdate({
-      adresas: form.adresas.trim(),
-      produkto_kodas: form.produktoKodas.trim(),
-      busena: form.busena,
+      address: form.address.trim(),
+      productCode: form.productCode.trim(),
+      status: form.status,
     });
   };
 
   return (
-    <section className="locker-form" aria-label="Paštomato forma">
+    <section className="locker-form" aria-label="Locker form">
       <header>
-        <h3>{mode === 'create' ? 'Kurti paštomatą' : 'Redaguoti paštomatą'}</h3>
+        <h3>{mode === 'create' ? 'Create locker' : 'Edit locker'}</h3>
         <button type="button" onClick={onCancel}>
-          Uždaryti
+          Close
         </button>
       </header>
 
       <div className="form-grid">
         <label>
-          <span>Adresas</span>
+          <span>Address</span>
           <input
-            value={form.adresas}
-            onChange={(event) => setForm({ ...form, adresas: event.target.value })}
+            value={form.address}
+            onChange={(event) => setForm({ ...form, address: event.target.value })}
           />
         </label>
 
         <label>
-          <span>Produkto kodas</span>
+          <span>Product code</span>
           <input
-            value={form.produktoKodas}
-            onChange={(event) => setForm({ ...form, produktoKodas: event.target.value })}
+            value={form.productCode}
+            onChange={(event) => setForm({ ...form, productCode: event.target.value })}
           />
         </label>
 
         {mode === 'edit' ? (
           <label>
-            <span>Būsena</span>
+            <span>Status</span>
             <select
-              value={form.busena}
-              onChange={(event) =>
-                setForm({ ...form, busena: event.target.value as PastomatoBusena })
-              }
+              value={form.status}
+              onChange={(event) => setForm({ ...form, status: event.target.value as LockerStatus })}
             >
-              {busenos.map((busena) => (
-                <option key={busena} value={busena}>
-                  {busena}
+              {statuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
                 </option>
               ))}
             </select>
           </label>
         ) : (
           <>
-            {dydziai.map((dydis) => (
-              <label key={dydis}>
-                <span>{dydis.toUpperCase()} dydžio skyriai</span>
+            {sizes.map((size) => (
+              <label key={size}>
+                <span>{size.toUpperCase()} size cells</span>
                 <input
                   min={0}
                   max={500}
                   type="number"
-                  value={form.skyriai[dydis]}
+                  value={form.cells[size]}
                   onChange={(event) =>
                     setForm({
                       ...form,
-                      skyriai: {
-                        ...form.skyriai,
-                        [dydis]: Math.max(0, Number(event.target.value)),
+                      cells: {
+                        ...form.cells,
+                        [size]: Math.max(0, Number(event.target.value)),
                       },
                     })
                   }
@@ -157,10 +155,10 @@ export function PastomatoForm({
 
       <div className="form-actions">
         <button type="button" onClick={submit}>
-          {mode === 'create' ? 'Sukurti' : 'Išsaugoti'}
+          {mode === 'create' ? 'Create' : 'Save'}
         </button>
         <button type="button" onClick={onCancel}>
-          Atšaukti
+          Cancel
         </button>
       </div>
     </section>

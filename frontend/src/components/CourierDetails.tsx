@@ -1,7 +1,7 @@
 import type { Courier } from '../models/courier';
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('lt-LT', {
+  return new Date(dateStr).toLocaleString('en-GB', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -16,33 +16,33 @@ type CourierDetailsProps = {
 
 export function CourierDetails({ courier }: CourierDetailsProps) {
   if (!courier) {
-    return <p className="empty-state">Pasirinkite kurjeri informacijai perziureti.</p>;
+    return <p className="empty-state">Select a courier to view details.</p>;
   }
 
   return (
     <article className="detail-panel">
       <header>
-        <p>{courier.pareigos}</p>
+        <p>{courier.role}</p>
         <h3>
-          {courier.vardas} {courier.pavarde}
+          {courier.firstName} {courier.lastName}
         </h3>
       </header>
 
       <dl>
         <div>
-          <dt>Telefono numeris</dt>
-          <dd>{courier.telefonoNr}</dd>
+          <dt>Phone number</dt>
+          <dd>{courier.phoneNumber}</dd>
         </div>
         <div>
-          <dt>El. pastas</dt>
-          <dd>{courier.elPastas}</dd>
+          <dt>Email</dt>
+          <dd>{courier.email}</dd>
         </div>
         <div>
-          <dt>Sukurta</dt>
+          <dt>Created</dt>
           <dd>{formatDate(courier.createdAt)}</dd>
         </div>
         <div>
-          <dt>Atnaujinta</dt>
+          <dt>Updated</dt>
           <dd>{formatDate(courier.updatedAt)}</dd>
         </div>
       </dl>

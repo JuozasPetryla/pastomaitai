@@ -1,4 +1,4 @@
-type PastomatoActionsProps = {
+type LockerActionsProps = {
   canEdit: boolean;
   canDelete: boolean;
   onCreate: () => void;
@@ -6,23 +6,23 @@ type PastomatoActionsProps = {
   onDelete: () => void;
 };
 
-export function PastomatoActions({
+export function LockerActions({
   canEdit,
   canDelete,
   onCreate,
   onEdit,
   onDelete,
-}: PastomatoActionsProps) {
+}: LockerActionsProps) {
   return (
-    <div className="admin-actions" aria-label="Paštomato valdymo veiksmai">
+    <div className="admin-actions" aria-label="Locker actions">
       <button type="button" onClick={onCreate}>
-        Kurti paštomatą
+        Create locker
       </button>
       <button type="button" disabled={!canEdit} onClick={onEdit}>
-        Redaguoti paštomatą
+        Edit locker
       </button>
       <button type="button" disabled={!canDelete} onClick={onDelete}>
-        Naikinti paštomatą
+        Delete locker
       </button>
     </div>
   );

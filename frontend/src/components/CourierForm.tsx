@@ -19,20 +19,20 @@ type CourierFormProps = {
 };
 
 type FormState = {
-  telefonoNr: string;
-  elPastas: string;
-  vardas: string;
-  pavarde: string;
-  pareigos: CourierRole;
+  phoneNumber: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: CourierRole;
 };
 
 function getInitialState(courier?: Courier): FormState {
   return {
-    telefonoNr: courier?.telefonoNr ?? '',
-    elPastas: courier?.elPastas ?? '',
-    vardas: courier?.vardas ?? '',
-    pavarde: courier?.pavarde ?? '',
-    pareigos: courier?.pareigos ?? 'kurjeris',
+    phoneNumber: courier?.phoneNumber ?? '',
+    email: courier?.email ?? '',
+    firstName: courier?.firstName ?? '',
+    lastName: courier?.lastName ?? '',
+    role: courier?.role ?? 'courier',
   };
 }
 
@@ -52,21 +52,21 @@ export function CourierForm({
 
   const submit = async () => {
     if (
-      form.telefonoNr.trim().length < 3 ||
-      form.elPastas.trim().length < 3 ||
-      form.vardas.trim().length < 1 ||
-      form.pavarde.trim().length < 1
+      form.phoneNumber.trim().length < 3 ||
+      form.email.trim().length < 3 ||
+      form.firstName.trim().length < 1 ||
+      form.lastName.trim().length < 1
     ) {
-      onError('Patikrinkite kurjerio duomenis.');
+      onError('Check the courier data.');
       return;
     }
 
     const payload = {
-      telefono_nr: form.telefonoNr.trim(),
-      el_pastas: form.elPastas.trim(),
-      vardas: form.vardas.trim(),
-      pavarde: form.pavarde.trim(),
-      pareigos: form.pareigos,
+      phoneNumber: form.phoneNumber.trim(),
+      email: form.email.trim(),
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      role: form.role,
     };
 
     if (mode === 'create') {
@@ -78,62 +78,62 @@ export function CourierForm({
   };
 
   return (
-    <section className="locker-form" aria-label="Kurjerio forma">
+    <section className="locker-form" aria-label="Courier form">
       <header>
-        <h3>{mode === 'create' ? 'Kurti kurjeri' : 'Redaguoti kurjeri'}</h3>
+        <h3>{mode === 'create' ? 'Create courier' : 'Edit courier'}</h3>
         <button type="button" onClick={onCancel}>
-          Uzdaryti
+          Close
         </button>
       </header>
 
       <div className="form-grid">
         <label>
-          <span>Vardas</span>
+          <span>First name</span>
           <input
-            value={form.vardas}
-            onChange={(event) => setForm({ ...form, vardas: event.target.value })}
+            value={form.firstName}
+            onChange={(event) => setForm({ ...form, firstName: event.target.value })}
           />
         </label>
         <label>
-          <span>Pavarde</span>
+          <span>Last name</span>
           <input
-            value={form.pavarde}
-            onChange={(event) => setForm({ ...form, pavarde: event.target.value })}
+            value={form.lastName}
+            onChange={(event) => setForm({ ...form, lastName: event.target.value })}
           />
         </label>
         <label>
-          <span>Telefono numeris</span>
+          <span>Phone number</span>
           <input
-            value={form.telefonoNr}
-            onChange={(event) => setForm({ ...form, telefonoNr: event.target.value })}
+            value={form.phoneNumber}
+            onChange={(event) => setForm({ ...form, phoneNumber: event.target.value })}
           />
         </label>
         <label>
-          <span>El. pastas</span>
+          <span>Email</span>
           <input
             type="email"
-            value={form.elPastas}
-            onChange={(event) => setForm({ ...form, elPastas: event.target.value })}
+            value={form.email}
+            onChange={(event) => setForm({ ...form, email: event.target.value })}
           />
         </label>
         <label>
-          <span>Pareigos</span>
+          <span>Role</span>
           <select
-            value={form.pareigos}
-            onChange={(event) => setForm({ ...form, pareigos: event.target.value as CourierRole })}
+            value={form.role}
+            onChange={(event) => setForm({ ...form, role: event.target.value as CourierRole })}
           >
-            <option value="kurjeris">Kurjeris</option>
-            <option value="administratorius">Administratorius</option>
+            <option value="courier">Courier</option>
+            <option value="administrator">Administrator</option>
           </select>
         </label>
       </div>
 
       <div className="form-actions">
         <button type="button" onClick={() => void submit()}>
-          {mode === 'create' ? 'Sukurti' : 'Issaugoti'}
+          {mode === 'create' ? 'Create' : 'Save'}
         </button>
         <button type="button" onClick={onCancel}>
-          Atsaukti
+          Cancel
         </button>
       </div>
     </section>

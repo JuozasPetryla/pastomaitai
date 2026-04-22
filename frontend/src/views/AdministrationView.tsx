@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react';
 
 import {
-  createPastomatas,
-  deletePastomatas,
-  fetchPastomatai,
-  fetchPastomatas,
-  updatePastomatas,
+  createLocker,
+  deleteLocker,
+  fetchLocker,
+  fetchLockers,
+  updateLocker,
 } from '../api/administrationApi';
 import { AppModal, type AppModalAction } from '../components/AppModal';
-import { PastomatoActions } from '../components/PastomatoActions';
-import { PastomatoDetails } from '../components/PastomatoDetails';
-import { PastomatoForm } from '../components/PastomatoForm';
-import { PastomatuFilters } from '../components/PastomatuFilters';
-import { PastomatuList } from '../components/PastomatuList';
+import { LockerActions } from '../components/PastomatoActions';
+import { LockerDetails } from '../components/PastomatoDetails';
+import { LockerForm } from '../components/PastomatoForm';
+import { LockerFilters } from '../components/PastomatuFilters';
+import { LockerList } from '../components/PastomatuList';
 import type {
-  Pastomatas,
-  PastomatasCreatePayload,
-  PastomatasListItem,
-  PastomatasUpdatePayload,
-  PastomatuFiltrai,
+  Locker,
+  LockerCreatePayload,
+  LockerFilters as LockerFiltersType,
+  LockerListItem,
+  LockerUpdatePayload,
 } from '../models/pastomatas';
 
 type FormMode = 'create' | 'edit';
@@ -29,11 +29,11 @@ type ModalState = {
 };
 
 export function AdministrationView() {
-  const [filters, setFilters] = useState<PastomatuFiltrai>({ regionas: '', busena: '' });
-  const [pastomatai, setPastomatai] = useState<PastomatasListItem[]>([]);
-  const [selectedPastomatas, setSelectedPastomatas] = useState<Pastomatas>();
+  const [filters, setFilters] = useState<LockerFiltersType>({ region: '', status: '' });
+  const [lockers, setLockers] = useState<LockerListItem[]>([]);
+  const [selectedLocker, setSelectedLocker] = useState<Locker>();
   const [selectedId, setSelectedId] = useState<number>();
-  const [status, setStatus] = useState('Pasirinkite filtrus arba paštomatą.');
+  const [status, setStatus] = useState('Select filters or a locker.');
   const [formMode, setFormMode] = useState<FormMode>();
   const [modal, setModal] = useState<ModalState>();
 
@@ -41,76 +41,76 @@ export function AdministrationView() {
 
   const showError = (message: string) => {
     setModal({
-      title: 'Klaida',
+      title: 'Error',
       message,
-      actions: [{ label: 'Uždaryti', onClick: closeModal, variant: 'primary' }],
+      actions: [{ label: 'Close', onClick: closeModal, variant: 'primary' }],
     });
   };
 
-  const loadPastomatai = async (
-    nextFilters: PastomatuFiltrai = filters,
-  ): Promise<PastomatasListItem[]> => {
+  const loadLockers = async (
+    nextFilters: LockerFiltersType = filters,
+  ): Promise<LockerListItem[]> => {
     setFilters(nextFilters);
-    setStatus('Kraunamas paštomatų sąrašas...');
+    setStatus('Loading lockers...');
     try {
-      const items = await fetchPastomatai({
-        regionas: nextFilters.regionas || undefined,
-        busena: nextFilters.busena || undefined,
+      const items = await fetchLockers({
+        region: nextFilters.region || undefined,
+        status: nextFilters.status || undefined,
       });
-      setPastomatai(items);
+      setLockers(items);
       if (selectedId !== undefined && !items.some((item) => item.id === selectedId)) {
         setSelectedId(undefined);
-        setSelectedPastomatas(undefined);
+        setSelectedLocker(undefined);
       }
-      setStatus(items.length ? 'Paštomatų sąrašas pateiktas.' : 'Sąrašas tuščias.');
+      setStatus(items.length ? 'Locker list loaded.' : 'No lockers found.');
       return items;
     } catch (caught) {
-      setPastomatai([]);
-      showError(caught instanceof Error ? caught.message : 'Nepavyko gauti paštomatų sąrašo.');
-      setStatus('Nepavyko gauti paštomatų sąrašo.');
+      setLockers([]);
+      showError(caught instanceof Error ? caught.message : 'Failed to load lockers.');
+      setStatus('Failed to load lockers.');
       return [];
     }
   };
 
-  const selectPastomatas = async (id: number) => {
+  const selectLocker = async (id: number) => {
     setSelectedId(id);
-    setStatus('Kraunama pasirinkto paštomato informacija...');
+    setStatus('Loading locker details...');
     try {
-      setSelectedPastomatas(await fetchPastomatas(id));
-      setStatus('Paštomato informacija pateikta.');
+      setSelectedLocker(await fetchLocker(id));
+      setStatus('Locker details loaded.');
     } catch (caught) {
-      setSelectedPastomatas(undefined);
-      showError(caught instanceof Error ? caught.message : 'Nepavyko gauti paštomato informacijos.');
-      setStatus('Nepavyko gauti paštomato informacijos.');
+      setSelectedLocker(undefined);
+      showError(caught instanceof Error ? caught.message : 'Failed to load locker details.');
+      setStatus('Failed to load locker details.');
     }
   };
 
-  const handleCreate = async (payload: PastomatasCreatePayload) => {
+  const handleCreate = async (payload: LockerCreatePayload) => {
     try {
-      const created = await createPastomatas(payload);
+      const created = await createLocker(payload);
       setSelectedId(created.id);
-      setSelectedPastomatas(created);
+      setSelectedLocker(created);
       setFormMode(undefined);
-      await loadPastomatai();
-      setStatus('Paštomatas sėkmingai sukurtas.');
+      await loadLockers();
+      setStatus('Locker created successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Paštomato sukurti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to create locker.');
     }
   };
 
-  const handleUpdate = async (payload: PastomatasUpdatePayload) => {
+  const handleUpdate = async (payload: LockerUpdatePayload) => {
     if (!selectedId) {
       return;
     }
 
     try {
-      const updated = await updatePastomatas(selectedId, payload);
-      setSelectedPastomatas(updated);
+      const updated = await updateLocker(selectedId, payload);
+      setSelectedLocker(updated);
       setFormMode(undefined);
-      await loadPastomatai();
-      setStatus('Paštomatas sėkmingai redaguotas.');
+      await loadLockers();
+      setStatus('Locker updated successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Paštomato redaguoti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to update locker.');
     }
   };
 
@@ -120,31 +120,31 @@ export function AdministrationView() {
     }
 
     try {
-      await deletePastomatas(selectedId);
+      await deleteLocker(selectedId);
       setSelectedId(undefined);
-      setSelectedPastomatas(undefined);
+      setSelectedLocker(undefined);
       setFormMode(undefined);
-      await loadPastomatai();
-      setStatus('Paštomatas sėkmingai panaikintas.');
+      await loadLockers();
+      setStatus('Locker deleted successfully.');
     } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Paštomato panaikinti nepavyko.');
-      setStatus(caught instanceof Error ? caught.message : 'Paštomato panaikinti nepavyko.');
+      showError(caught instanceof Error ? caught.message : 'Failed to delete locker.');
+      setStatus(caught instanceof Error ? caught.message : 'Failed to delete locker.');
     }
   };
 
   const requestDelete = () => {
-    if (!selectedPastomatas) {
-      showError('Pasirinkite paštomatą, kurį norite naikinti.');
+    if (!selectedLocker) {
+      showError('Select a locker to delete.');
       return;
     }
 
     setModal({
-      title: 'Naikinti paštomatą?',
-      message: `Paštomatas "${selectedPastomatas.adresas}" bus pažymėtas kaip panaikintas.`,
+      title: 'Delete locker?',
+      message: `Locker "${selectedLocker.address}" will be permanently removed.`,
       actions: [
-        { label: 'Atšaukti', onClick: closeModal, variant: 'secondary' },
+        { label: 'Cancel', onClick: closeModal, variant: 'secondary' },
         {
-          label: 'Naikinti',
+          label: 'Delete',
           variant: 'danger',
           onClick: () => {
             closeModal();
@@ -157,18 +157,18 @@ export function AdministrationView() {
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      void loadPastomatai(filters);
+      void loadLockers(filters);
     }, 250);
 
     return () => window.clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.regionas, filters.busena]);
+  }, [filters.region, filters.status]);
 
   return (
     <div className="admin-workflow">
-      <PastomatuFilters filters={filters} onChange={setFilters} />
-      <PastomatoActions
-        canEdit={selectedPastomatas !== undefined}
+      <LockerFilters filters={filters} onChange={setFilters} />
+      <LockerActions
+        canEdit={selectedLocker !== undefined}
         canDelete={selectedId !== undefined}
         onCreate={() => setFormMode('create')}
         onEdit={() => setFormMode('edit')}
@@ -176,9 +176,9 @@ export function AdministrationView() {
       />
 
       {formMode ? (
-        <PastomatoForm
+        <LockerForm
           mode={formMode}
-          pastomatas={selectedPastomatas}
+          locker={selectedLocker}
           onCancel={() => setFormMode(undefined)}
           onCreate={handleCreate}
           onUpdate={handleUpdate}
@@ -187,13 +187,13 @@ export function AdministrationView() {
       ) : null}
 
       <div className="admin-grid">
-        <section aria-label="Paštomatų sąrašas">
+        <section aria-label="Locker list">
           <p className="workflow-status">{status}</p>
-          <PastomatuList activeId={selectedId} items={pastomatai} onSelect={selectPastomatas} />
+          <LockerList activeId={selectedId} items={lockers} onSelect={selectLocker} />
         </section>
 
-        <section aria-label="Pasirinkto paštomato informacija">
-          <PastomatoDetails pastomatas={selectedPastomatas} />
+        <section aria-label="Selected locker details">
+          <LockerDetails locker={selectedLocker} />
         </section>
       </div>
 

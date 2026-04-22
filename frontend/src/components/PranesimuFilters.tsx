@@ -1,63 +1,63 @@
-import type { PranesimoTipas, PranesimuFiltrai } from '../models/pranesimas';
+import type { NotificationFilters, NotificationType } from '../models/pranesimas';
 
-const tipai: Array<{ value: PranesimoTipas | ''; label: string }> = [
-  { value: '', label: 'Visi tipai' },
+const notificationTypes: Array<{ value: NotificationType | ''; label: string }> = [
+  { value: '', label: 'All types' },
   { value: 'sms', label: 'SMS' },
-  { value: 'el_pastas', label: 'El. paštas' },
+  { value: 'email', label: 'Email' },
 ];
 
-const issiustoReikšmes: Array<{ value: 'true' | 'false' | ''; label: string }> = [
-  { value: '', label: 'Visi' },
-  { value: 'true', label: 'Išsiųsti' },
-  { value: 'false', label: 'Neišsiųsti' },
+const sentValues: Array<{ value: 'true' | 'false' | ''; label: string }> = [
+  { value: '', label: 'All' },
+  { value: 'true', label: 'Sent' },
+  { value: 'false', label: 'Not sent' },
 ];
 
-type PranesimuFiltersProps = {
-  filters: PranesimuFiltrai;
-  onChange: (filters: PranesimuFiltrai) => void;
+type NotificationFiltersProps = {
+  filters: NotificationFilters;
+  onChange: (filters: NotificationFilters) => void;
 };
 
-export function PranesimuFilters({ filters, onChange }: PranesimuFiltersProps) {
+export function NotificationFilters({ filters, onChange }: NotificationFiltersProps) {
   return (
     <div className="filter-bar">
       <label>
-        <span>Asmens ID</span>
+        <span>Person ID</span>
         <input
           type="number"
-          value={filters.asmuo_id}
-          placeholder="Pvz.: 42"
+          value={filters.personId}
+          placeholder="Example: 42"
           min={1}
-          onChange={(event) => onChange({ ...filters, asmuo_id: event.target.value })}
+          onChange={(event) => onChange({ ...filters, personId: event.target.value })}
         />
       </label>
 
       <label>
-        <span>Tipas</span>
+        <span>Type</span>
         <select
-          value={filters.tipas}
+          value={filters.type}
           onChange={(event) =>
-            onChange({ ...filters, tipas: event.target.value as PranesimoTipas | '' })
+            onChange({ ...filters, type: event.target.value as NotificationType | '' })
           }
         >
-          {tipai.map((tipas) => (
-            <option key={tipas.value || 'all'} value={tipas.value}>
-              {tipas.label}
+          {notificationTypes.map((type) => (
+            <option key={type.value || 'all'} value={type.value}>
+              {type.label}
             </option>
           ))}
         </select>
       </label>
 
       <label>
-        <span>Išsiųstas</span>
+        <span>Sent</span>
         <select
-          value={filters.issiustas}
+          value={filters.isSent}
           onChange={(event) =>
-            onChange({ ...filters, issiustas: event.target.value as 'true' | 'false' | '' })
+            onChange({ ...filters, isSent: event.target.value as 'true' | 'false' | '' })
           }
         >
-          {issiustoReikšmes.map((r) => (
-            <option key={r.value || 'all'} value={r.value}>
-              {r.label}
+          {sentValues.map((value) => (
+            <option key={value.value || 'all'} value={value.value}>
+              {value.label}
             </option>
           ))}
         </select>

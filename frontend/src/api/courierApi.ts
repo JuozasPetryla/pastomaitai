@@ -7,13 +7,15 @@ import type {
   CourierUpdatePayload,
 } from '../models/courier';
 
+type ApiCourierRole = 'administratorius' | 'kurjeris';
+
 type CourierListItemResponse = {
   id: number;
   telefono_nr: string;
   el_pastas: string;
   vardas: string;
   pavarde: string;
-  pareigos: CourierListItem['pareigos'];
+  pareigos: ApiCourierRole;
 };
 
 type CourierResponse = CourierListItemResponse & {
@@ -21,14 +23,24 @@ type CourierResponse = CourierListItemResponse & {
   updated_at: string;
 };
 
+const courierRoleFromApi: Record<ApiCourierRole, CourierListItem['role']> = {
+  administratorius: 'administrator',
+  kurjeris: 'courier',
+};
+
+const courierRoleToApi: Record<CourierListItem['role'], ApiCourierRole> = {
+  administrator: 'administratorius',
+  courier: 'kurjeris',
+};
+
 function toListItem(response: CourierListItemResponse): CourierListItem {
   return {
     id: response.id,
-    telefonoNr: response.telefono_nr,
-    elPastas: response.el_pastas,
-    vardas: response.vardas,
-    pavarde: response.pavarde,
-    pareigos: response.pareigos,
+    phoneNumber: response.telefono_nr,
+    email: response.el_pastas,
+    firstName: response.vardas,
+    lastName: response.pavarde,
+    role: courierRoleFromApi[response.pareigos],
   };
 }
 
@@ -43,8 +55,8 @@ function toCourier(response: CourierResponse): Courier {
 export async function fetchCouriers(filters: CourierFilters): Promise<CourierListItem[]> {
   const searchParams = new URLSearchParams();
 
-  if (filters.pareigos) {
-    searchParams.set('pareigos', filters.pareigos);
+  if (filters.role) {
+    searchParams.set('role', courierRoleToApi[filters.role]);
   }
 
   const query = searchParams.toString();
@@ -61,15 +73,42 @@ export async function fetchCourier(id: number): Promise<Courier> {
 }
 
 export async function createCourier(payload: CourierCreatePayload): Promise<Courier> {
-  const response = await apiPost<CourierResponse, CourierCreatePayload>('/api/courier', payload);
+  const response = await apiPost<
+    CourierResponse,
+    {
+      telefono_nr: string;
+      el_pastas: string;
+      vardas: string;
+      pavarde: string;
+      pareigos: ApiCourierRole;
+    }
+  >('/api/courier', {
+    telefono_nr: payload.phoneNumber,
+    el_pastas: payload.email,
+    vardas: payload.firstName,
+    pavarde: payload.lastName,
+    pareigos: courierRoleToApi[payload.role],
+  });
   return toCourier(response);
 }
 
 export async function updateCourier(id: number, payload: CourierUpdatePayload): Promise<Courier> {
-  const response = await apiPatch<CourierResponse, CourierUpdatePayload>(
-    `/api/courier/${id}`,
-    payload,
-  );
+  const response = await apiPatch<
+    CourierResponse,
+    {
+      telefono_nr?: string;
+      el_pastas?: string;
+      vardas?: string;
+      pavarde?: string;
+      pareigos?: ApiCourierRole;
+    }
+  >(`/api/courier/${id}`, {
+    ...(payload.phoneNumber ? { telefono_nr: payload.phoneNumber } : {}),
+    ...(payload.email ? { el_pastas: payload.email } : {}),
+    ...(payload.firstName ? { vardas: payload.firstName } : {}),
+    ...(payload.lastName ? { pavarde: payload.lastName } : {}),
+    ...(payload.role ? { pareigos: courierRoleToApi[payload.role] } : {}),
+  });
   return toCourier(response);
 }
 

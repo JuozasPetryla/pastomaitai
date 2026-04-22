@@ -70,7 +70,7 @@ async def _commit_or_409(session: AsyncSession) -> None:
         await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Nepavyko issaugoti siuntos. Patikrinkite unikalius laukus ir susijusius ID.",
+            detail="Failed to save shipment. Check unique fields and related IDs.",
         ) from exc
 
 
@@ -118,7 +118,7 @@ async def _get_shipment_model(session: AsyncSession, shipment_id: int) -> Siunta
     shipment = (await session.execute(query)).scalar_one_or_none()
 
     if shipment is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Siunta nerasta.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shipment not found.")
 
     return shipment
 
@@ -126,16 +126,16 @@ async def _get_shipment_model(session: AsyncSession, shipment_id: int) -> Siunta
 async def list_shipments(
     session: AsyncSession,
     *,
-    siuntos_kodas: str | None = None,
-    busena: SiuntosBusena | None = None,
+    shipment_code: str | None = None,
+    status_filter: SiuntosBusena | None = None,
 ) -> list[ShipmentListItem]:
     query = select(Siunta).options(*_shipment_load_options())
 
-    if siuntos_kodas:
-        query = query.where(Siunta.siuntos_kodas.ilike(f"%{siuntos_kodas}%"))
+    if shipment_code:
+        query = query.where(Siunta.siuntos_kodas.ilike(f"%{shipment_code}%"))
 
-    if busena is not None:
-        query = query.where(Siunta.busena == busena)
+    if status_filter is not None:
+        query = query.where(Siunta.busena == status_filter)
 
     query = query.order_by(Siunta.created_at.desc())
     shipments = (await session.execute(query)).scalars().all()
@@ -167,24 +167,24 @@ def calculate_shipment_price(size: str) -> Decimal:
 
 
 async def create_shipment(session: AsyncSession, payload: ShipmentCreate) -> ShipmentResponse:
-    siuntejas = await _get_or_create_party(session, payload.siuntejas, Siuntejas)
-    gavejas = await _get_or_create_party(session, payload.gavejas, Gavejas)
-    uzsakymo_nr = await _next_order_number(session)
-    siuntos_kodas = f"SNT-{uzsakymo_nr:06d}"
+    sender_role = await _get_or_create_party(session, payload.siuntejas, Siuntejas)
+    receiver_role = await _get_or_create_party(session, payload.gavejas, Gavejas)
+    order_number = await _next_order_number(session)
+    shipment_code = f"SNT-{order_number:06d}"
 
     shipment = Siunta(
-        uzsakymo_nr=uzsakymo_nr,
-        siuntejas_id=siuntejas.asmuo_id,
-        gavejas_id=gavejas.asmuo_id,
+        uzsakymo_nr=order_number,
+        siuntejas_id=sender_role.asmuo_id,
+        gavejas_id=receiver_role.asmuo_id,
         pastomato_skyrius_id=payload.pastomato_skyrius_id,
         dydis=payload.dydis,
         gavimo_adresas=payload.gavimo_adresas,
         siuntimo_adresas=payload.siuntimo_adresas,
         data=payload.data,
         busena=SiuntosBusena.uzregistruota,
-        siuntos_kodas=siuntos_kodas,
+        siuntos_kodas=shipment_code,
         suma=calculate_shipment_price(payload.dydis.value),
-        saskaita=payload.saskaita or f"MOKEJIMAS-{siuntos_kodas}",
+        saskaita=payload.saskaita or f"MOKEJIMAS-{shipment_code}",
         apmokamas_pastomate=payload.apmokamas_pastomate,
     )
     session.add(shipment)
@@ -201,12 +201,12 @@ async def update_shipment(
     shipment = await _get_shipment_model(session, shipment_id)
 
     if payload.siuntejas is not None:
-        siuntejas = await _get_or_create_party(session, payload.siuntejas, Siuntejas)
-        shipment.siuntejas_id = siuntejas.asmuo_id
+        sender_role = await _get_or_create_party(session, payload.siuntejas, Siuntejas)
+        shipment.siuntejas_id = sender_role.asmuo_id
 
     if payload.gavejas is not None:
-        gavejas = await _get_or_create_party(session, payload.gavejas, Gavejas)
-        shipment.gavejas_id = gavejas.asmuo_id
+        receiver_role = await _get_or_create_party(session, payload.gavejas, Gavejas)
+        shipment.gavejas_id = receiver_role.asmuo_id
 
     updates = payload.model_dump(exclude_unset=True, exclude={"siuntejas", "gavejas"})
     for field_name, value in updates.items():

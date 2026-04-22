@@ -1,12 +1,12 @@
-import type { Pranesimas } from '../models/pranesimas';
+import type { Notification } from '../models/pranesimas';
 
-type PranesimasDetailsProps = {
-  pranesimas?: Pranesimas;
+type NotificationDetailsProps = {
+  notification?: Notification;
 };
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleString('lt-LT', {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleString('en-GB', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -15,34 +15,34 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
-export function PranesimasDetails({ pranesimas }: PranesimasDetailsProps) {
-  if (!pranesimas) {
-    return <p className="empty-state">Pasirinkite pranešimą informacijai peržiūrėti.</p>;
+export function NotificationDetails({ notification }: NotificationDetailsProps) {
+  if (!notification) {
+    return <p className="empty-state">Select a notification to view details.</p>;
   }
 
   return (
     <article className="detail-panel">
       <header>
-        <p>{pranesimas.issiustas ? 'Išsiųstas' : 'Neišsiųstas'}</p>
-        <h3>{pranesimas.tipas === 'sms' ? 'SMS' : 'El. paštas'} · Asmuo #{pranesimas.asmuo_id}</h3>
+        <p>{notification.isSent ? 'Sent' : 'Not sent'}</p>
+        <h3>{notification.type === 'sms' ? 'SMS' : 'Email'} · Person #{notification.personId}</h3>
       </header>
 
       <dl>
         <div>
-          <dt>Tekstas</dt>
-          <dd>{pranesimas.tekstas}</dd>
+          <dt>Message</dt>
+          <dd>{notification.message}</dd>
         </div>
         <div>
-          <dt>Sukurta</dt>
-          <dd>{formatDate(pranesimas.created_at)}</dd>
+          <dt>Created</dt>
+          <dd>{formatDate(notification.createdAt)}</dd>
         </div>
         <div>
-          <dt>Išsiųsta operatoriui</dt>
-          <dd>{formatDate(pranesimas.issiuntimo_operatoriui_data)}</dd>
+          <dt>Sent to provider</dt>
+          <dd>{formatDate(notification.sentToProviderAt)}</dd>
         </div>
         <div>
-          <dt>Operatoriaus atsakas</dt>
-          <dd>{formatDate(pranesimas.operatoriaus_atsako_data)}</dd>
+          <dt>Provider response</dt>
+          <dd>{formatDate(notification.providerResponseAt)}</dd>
         </div>
       </dl>
     </article>

@@ -1,13 +1,13 @@
-import type { PranesimasListItem } from '../models/pranesimas';
+import type { NotificationListItem } from '../models/pranesimas';
 
-type PranesimuListProps = {
+type NotificationListProps = {
   activeId?: number;
-  items: PranesimasListItem[];
+  items: NotificationListItem[];
   onSelect: (id: number) => void;
 };
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('lt-LT', {
+  return new Date(dateStr).toLocaleString('en-GB', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -16,25 +16,25 @@ function formatDate(dateStr: string): string {
   });
 }
 
-export function PranesimuList({ activeId, items, onSelect }: PranesimuListProps) {
+export function NotificationList({ activeId, items, onSelect }: NotificationListProps) {
   if (items.length === 0) {
-    return <p className="empty-state">Pranešimų pagal pasirinktus filtrus nėra.</p>;
+    return <p className="empty-state">No notifications match the current filters.</p>;
   }
 
   return (
     <div className="locker-list">
-      {items.map((pranesimas) => (
+      {items.map((notification) => (
         <button
-          key={pranesimas.id}
-          className={pranesimas.id === activeId ? 'active' : ''}
+          key={notification.id}
+          className={notification.id === activeId ? 'active' : ''}
           type="button"
-          onClick={() => onSelect(pranesimas.id)}
+          onClick={() => onSelect(notification.id)}
         >
           <span>
-            {pranesimas.tipas === 'sms' ? 'SMS' : 'El. paštas'} · Asmuo #{pranesimas.asmuo_id}
+            {notification.type === 'sms' ? 'SMS' : 'Email'} · Person #{notification.personId}
           </span>
           <small>
-            {pranesimas.issiustas ? '✓ Išsiųstas' : '○ Neišsiųstas'} · {formatDate(pranesimas.created_at)}
+            {notification.isSent ? 'Sent' : 'Not sent'} · {formatDate(notification.createdAt)}
           </small>
         </button>
       ))}

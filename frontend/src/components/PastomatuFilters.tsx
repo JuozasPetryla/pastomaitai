@@ -1,42 +1,42 @@
-import type { PastomatoBusena, PastomatuFiltrai } from '../models/pastomatas';
+import type { LockerFilters, LockerStatus } from '../models/pastomatas';
 
-const busenos: Array<{ value: PastomatoBusena | ''; label: string }> = [
-  { value: '', label: 'Visos būsenos' },
-  { value: 'aktyvus', label: 'Aktyvus' },
-  { value: 'neaktyvus', label: 'Neaktyvus' },
-  { value: 'negali_spausdinti', label: 'Negali spausdinti' },
-  { value: 'panaikintas', label: 'Panaikintas' },
+const statuses: Array<{ value: LockerStatus | ''; label: string }> = [
+  { value: '', label: 'All statuses' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+  { value: 'printing_disabled', label: 'Printing disabled' },
+  { value: 'deleted', label: 'Deleted' },
 ];
 
-type PastomatuFiltersProps = {
-  filters: PastomatuFiltrai;
-  onChange: (filters: PastomatuFiltrai) => void;
+type LockerFiltersProps = {
+  filters: LockerFilters;
+  onChange: (filters: LockerFilters) => void;
 };
 
-export function PastomatuFilters({ filters, onChange }: PastomatuFiltersProps) {
+export function LockerFilters({ filters, onChange }: LockerFiltersProps) {
   return (
     <div className="filter-bar">
       <label>
-        <span>Regionas</span>
+        <span>Region</span>
         <input
           type="search"
-          value={filters.regionas}
-          placeholder="Adreso tekstas"
-          onChange={(event) => onChange({ ...filters, regionas: event.target.value })}
+          value={filters.region}
+          placeholder="Address text"
+          onChange={(event) => onChange({ ...filters, region: event.target.value })}
         />
       </label>
 
       <label>
-        <span>Būsena</span>
+        <span>Status</span>
         <select
-          value={filters.busena}
+          value={filters.status}
           onChange={(event) =>
-            onChange({ ...filters, busena: event.target.value as PastomatoBusena | '' })
+            onChange({ ...filters, status: event.target.value as LockerStatus | '' })
           }
         >
-          {busenos.map((busena) => (
-            <option key={busena.value || 'all'} value={busena.value}>
-              {busena.label}
+          {statuses.map((status) => (
+            <option key={status.value || 'all'} value={status.value}>
+              {status.label}
             </option>
           ))}
         </select>

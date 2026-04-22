@@ -3,7 +3,6 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-
 from app.models.asmuo import Asmuo, Darbuotojas, DarbuotojoPareigos
 from app.schemas.asmuo import (
     DarbuotojasCreate,
@@ -16,52 +15,43 @@ from app.schemas.asmuo import (
 async def list_couriers(
     session: AsyncSession,
     *,
-    pareigos: DarbuotojoPareigos | None = None,
+    role: DarbuotojoPareigos | None = None,
 ) -> list[DarbuotojasListItem]:
     statement = select(Darbuotojas).options(selectinload(Darbuotojas.asmuo))
 
-    if pareigos is not None:
-        statement = statement.where(Darbuotojas.pareigos == pareigos)
+    if role is not None:
+        statement = statement.where(Darbuotojas.pareigos == role)
     else:
         statement = statement.where(Darbuotojas.pareigos == DarbuotojoPareigos.kurjeris)
 
     statement = statement.order_by(Asmuo.vardas, Asmuo.pavarde).join(Darbuotojas.asmuo)
-
     result = await session.scalars(statement)
 
     return [
         DarbuotojasListItem(
-            id=darbuotojas.asmuo_id,
-            telefono_nr=darbuotojas.asmuo.telefono_nr,
-            el_pastas=darbuotojas.asmuo.el_pastas,
-            vardas=darbuotojas.asmuo.vardas,
-            pavarde=darbuotojas.asmuo.pavarde,
-            pareigos=darbuotojas.pareigos,
+            id=employee.asmuo_id,
+            telefono_nr=employee.asmuo.telefono_nr,
+            el_pastas=employee.asmuo.el_pastas,
+            vardas=employee.asmuo.vardas,
+            pavarde=employee.asmuo.pavarde,
+            pareigos=employee.pareigos,
         )
-        for darbuotojas in result.all()
+        for employee in result.all()
     ]
 
 
-async def list_darbuotojai(
-    session: AsyncSession,
-    *,
-    pareigos: DarbuotojoPareigos | None = None,
-) -> list[DarbuotojasListItem]:
-    return await list_couriers(session, pareigos=pareigos)
-
-
 async def get_courier(session: AsyncSession, courier_id: int) -> DarbuotojasRead:
-    darbuotojas = await get_courier_model(session, courier_id)
+    employee = await get_courier_model(session, courier_id)
 
     return DarbuotojasRead(
-        id=darbuotojas.asmuo_id,
-        telefono_nr=darbuotojas.asmuo.telefono_nr,
-        el_pastas=darbuotojas.asmuo.el_pastas,
-        vardas=darbuotojas.asmuo.vardas,
-        pavarde=darbuotojas.asmuo.pavarde,
-        pareigos=darbuotojas.pareigos,
-        created_at=darbuotojas.asmuo.created_at,
-        updated_at=darbuotojas.asmuo.updated_at,
+        id=employee.asmuo_id,
+        telefono_nr=employee.asmuo.telefono_nr,
+        el_pastas=employee.asmuo.el_pastas,
+        vardas=employee.asmuo.vardas,
+        pavarde=employee.asmuo.pavarde,
+        pareigos=employee.pareigos,
+        created_at=employee.asmuo.created_at,
+        updated_at=employee.asmuo.updated_at,
     )
 
 
@@ -69,29 +59,29 @@ async def create_courier(
     session: AsyncSession,
     payload: DarbuotojasCreate,
 ) -> DarbuotojasRead:
-    await ensure_unique_asmuo(
+    await ensure_unique_person(
         session,
         telefono_nr=payload.telefono_nr,
         el_pastas=payload.el_pastas,
     )
 
-    asmuo = Asmuo(
+    person = Asmuo(
         telefono_nr=payload.telefono_nr,
         el_pastas=payload.el_pastas,
         vardas=payload.vardas,
         pavarde=payload.pavarde,
     )
-    session.add(asmuo)
+    session.add(person)
     await session.flush()
 
-    darbuotojas = Darbuotojas(
-        asmuo_id=asmuo.id,
+    employee = Darbuotojas(
+        asmuo_id=person.id,
         pareigos=payload.pareigos,
     )
-    session.add(darbuotojas)
+    session.add(employee)
 
     await session.commit()
-    return await get_courier(session, asmuo.id)
+    return await get_courier(session, person.id)
 
 
 async def update_courier(
@@ -99,10 +89,10 @@ async def update_courier(
     courier_id: int,
     payload: DarbuotojasUpdate,
 ) -> DarbuotojasRead:
-    darbuotojas = await get_courier_model(session, courier_id)
-    asmuo = darbuotojas.asmuo
+    employee = await get_courier_model(session, courier_id)
+    person = employee.asmuo
 
-    await ensure_unique_asmuo(
+    await ensure_unique_person(
         session,
         telefono_nr=payload.telefono_nr,
         el_pastas=payload.el_pastas,
@@ -110,28 +100,28 @@ async def update_courier(
     )
 
     if payload.telefono_nr is not None:
-        asmuo.telefono_nr = payload.telefono_nr
+        person.telefono_nr = payload.telefono_nr
 
     if payload.el_pastas is not None:
-        asmuo.el_pastas = payload.el_pastas
+        person.el_pastas = payload.el_pastas
 
     if payload.vardas is not None:
-        asmuo.vardas = payload.vardas
+        person.vardas = payload.vardas
 
     if payload.pavarde is not None:
-        asmuo.pavarde = payload.pavarde
+        person.pavarde = payload.pavarde
 
     if payload.pareigos is not None:
-        darbuotojas.pareigos = payload.pareigos
+        employee.pareigos = payload.pareigos
 
-    asmuo.updated_at = func.now()
+    person.updated_at = func.now()
     await session.commit()
     return await get_courier(session, courier_id)
 
 
 async def delete_courier(session: AsyncSession, courier_id: int) -> None:
-    darbuotojas = await get_courier_model(session, courier_id)
-    await session.delete(darbuotojas)
+    employee = await get_courier_model(session, courier_id)
+    await session.delete(employee)
     await session.commit()
 
 
@@ -142,18 +132,18 @@ async def get_courier_model(session: AsyncSession, courier_id: int) -> Darbuotoj
         .where(Darbuotojas.asmuo_id == courier_id)
     )
 
-    darbuotojas = await session.scalar(statement)
+    employee = await session.scalar(statement)
 
-    if darbuotojas is None:
+    if employee is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Kurjeris nerastas",
+            detail="Courier not found",
         )
 
-    return darbuotojas
+    return employee
 
 
-async def ensure_unique_asmuo(
+async def ensure_unique_person(
     session: AsyncSession,
     *,
     telefono_nr: str | None = None,
@@ -164,7 +154,7 @@ async def ensure_unique_asmuo(
         await ensure_unique_field(
             session,
             Asmuo.telefono_nr == telefono_nr,
-            "Asmuo su tokiu telefono numeriu jau egzistuoja",
+            "A person with this phone number already exists",
             exclude_id=exclude_id,
         )
 
@@ -172,7 +162,7 @@ async def ensure_unique_asmuo(
         await ensure_unique_field(
             session,
             Asmuo.el_pastas == el_pastas,
-            "Asmuo su tokiu el. paštu jau egzistuoja",
+            "A person with this email already exists",
             exclude_id=exclude_id,
         )
 
