@@ -1,7 +1,7 @@
 import enum
-from datetime import date, datetime
+from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, Enum, ForeignKey, Index, Text, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, Index, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -30,8 +30,8 @@ class Pranesimas(Base):
         Enum(PranesimoTipas, name="pranesimo_tipas"),
         nullable=False,
     )
-    issiuntimo_operatoriui_data: Mapped[date | None] = mapped_column(Date)
-    operatoriaus_atsako_data: Mapped[date | None] = mapped_column(Date)
+    issiuntimo_operatoriui_data: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    operatoriaus_atsako_data: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     issiustas: Mapped[bool] = mapped_column(Boolean, server_default="false", nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

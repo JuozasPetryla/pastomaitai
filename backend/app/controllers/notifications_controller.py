@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
 from app.models.notification import PranesimoTipas
+from app.models.shipment import SiuntosBusena
 from app.schemas.notification import (
     PranesimasCreate,
     PranesimasListItem,
@@ -66,3 +67,43 @@ async def delete_notification(
 ) -> Response:
     await notification_service.delete_notification(session, notification_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/shipment/{shipment_id}/messages", status_code=status.HTTP_201_CREATED)
+async def create_shipment_notifications(
+    shipment_id: int,
+    status: SiuntosBusena,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict[str, int]:
+    created_count = await notification_service.create_messages_for_shipment_event(
+        session, shipment_id, status
+    )
+    return {"created_notifications": created_count}
+
+
+@router.post("/send/unsent/sms")
+async def send_unsent_sms_notifications(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict[str, int]:
+    processed = await notification_service.send_unsent_sms_messages(session)
+    return {"processed_sms": processed}
+
+
+@router.post("/send/unsent/email")
+async def send_unsent_email_notifications(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict[str, int]:
+    processed = await notification_service.send_unsent_email_messages(session)
+    return {"processed_email": processed}
+
+
+@router.post("/send/unsent")
+async def send_all_unsent_notifications(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict[str, int]:
+    processed_sms = await notification_service.send_unsent_sms_messages(session)
+    processed_email = await notification_service.send_unsent_email_messages(session)
+    return {
+        "processed_sms": processed_sms,
+        "processed_email": processed_email,
+    }

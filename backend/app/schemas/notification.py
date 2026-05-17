@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -10,7 +10,7 @@ class PranesimasListItem(BaseModel):
     asmuo_id: int
     tipas: PranesimoTipas
     issiustas: bool
-    issiuntimo_operatoriui_data: date | None
+    issiuntimo_operatoriui_data: datetime | None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -21,8 +21,8 @@ class PranesimasRead(BaseModel):
     asmuo_id: int
     tekstas: str
     tipas: PranesimoTipas
-    issiuntimo_operatoriui_data: date | None
-    operatoriaus_atsako_data: date | None
+    issiuntimo_operatoriui_data: datetime | None
+    operatoriaus_atsako_data: datetime | None
     issiustas: bool
     created_at: datetime
 
@@ -39,14 +39,14 @@ class PranesimasCreate(BaseModel):
     asmuo_id: int = Field(ge=1)
     tekstas: str = Field(min_length=1, max_length=5000)
     tipas: PranesimoTipas
-    issiuntimo_operatoriui_data: date | None = None
+    issiuntimo_operatoriui_data: datetime | None = None
 
 
 class PranesimasUpdate(BaseModel):
     tekstas: str | None = Field(default=None, min_length=1, max_length=5000)
     tipas: PranesimoTipas | None = None
-    issiuntimo_operatoriui_data: date | None = None
-    operatoriaus_atsako_data: date | None = None
+    issiuntimo_operatoriui_data: datetime | None = None
+    operatoriaus_atsako_data: datetime | None = None
     issiustas: bool | None = None
 
     @model_validator(mode="after")

@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.person import Asmuo, Gavejas, Siuntejas
 from app.models.shipment import Siunta, SiuntosBusena
+from app.services import notification_service
 from app.schemas.shipment import (
     ShipmentCreate,
     ShipmentListItem,
@@ -209,11 +210,22 @@ async def update_shipment(
         shipment.gavejas_id = receiver_role.asmuo_id
 
     updates = payload.model_dump(exclude_unset=True, exclude={"siuntejas", "gavejas"})
+    old_status = shipment.busena
+
     for field_name, value in updates.items():
         setattr(shipment, field_name, value)
 
     if "dydis" in updates:
         shipment.suma = calculate_shipment_price(shipment.dydis.value)
+
+    new_status = shipment.busena
+    if old_status != new_status and new_status in (
+        SiuntosBusena.tranzite,
+        SiuntosBusena.pristatyta,
+    ):
+        await notification_service.create_messages(
+            session, shipment.id, new_status
+        )
 
     await _commit_or_409(session)
     return await get_shipment(session, shipment.id)
