@@ -29,13 +29,6 @@ function downloadStickerPdf(stickerPdf: Blob, fileName: string) {
   window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
 }
 
-function openStickerPdf(stickerPdf: Blob, printWindow: Window, fileName: string) {
-  const stickerUrl = URL.createObjectURL(stickerPdf);
-  printWindow.location.href = stickerUrl;
-  downloadStickerPdf(stickerPdf, fileName);
-  window.setTimeout(() => URL.revokeObjectURL(stickerUrl), 60000);
-}
-
 export function ShipmentsView() {
   const [lockers, setLockers] = useState<LockerListItem[]>([]);
   const [registeredShipment, setRegisteredShipment] = useState<Shipment>();
@@ -71,20 +64,12 @@ export function ShipmentsView() {
       return;
     }
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      ShowErrorMessage('Allow pop-ups to open the sticker in a new window.');
-      return;
-    }
-
-    printWindow.document.write('<p>Preparing sticker...</p>');
     setIsPrintingSticker(true);
 
     try {
       const stickerPdf = await requestStickerPdf(registeredShipment);
-      openStickerPdf(stickerPdf, printWindow, `sticker_${registeredShipment.shipmentCode}.pdf`);
+      downloadStickerPdf(stickerPdf, `sticker_${registeredShipment.shipmentCode}.pdf`);
     } catch (caught) {
-      printWindow.close();
       ShowErrorMessage(caught instanceof Error ? caught.message : 'Failed to generate sticker.');
     } finally {
       setIsPrintingSticker(false);
@@ -131,10 +116,6 @@ export function ShipmentsView() {
                 <div>
                   <span>Parcel size</span>
                   <strong>{registeredShipment.size.toUpperCase()}</strong>
-                </div>
-                <div>
-                  <span>Shipment date</span>
-                  <strong>{registeredShipment.shipmentDate}</strong>
                 </div>
               </div>
 

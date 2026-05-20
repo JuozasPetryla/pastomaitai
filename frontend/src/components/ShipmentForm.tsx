@@ -32,7 +32,6 @@ type FormState = {
   size: Shipment['size'];
   dispatchLockerAddress: string;
   destinationLockerAddress: string;
-  shipmentDate: string;
 };
 
 function emptyParty(): ShipmentPartyInput {
@@ -42,10 +41,6 @@ function emptyParty(): ShipmentPartyInput {
     phoneNumber: '',
     email: '',
   };
-}
-
-function todayValue(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function getInitialPaymentDetails(): ShipmentPaymentDetails {
@@ -65,7 +60,6 @@ function getInitialState(lockers: LockerListItem[]): FormState {
     size: 'm',
     dispatchLockerAddress: lockers[0]?.address ?? '',
     destinationLockerAddress: lockers[1]?.address ?? lockers[0]?.address ?? '',
-    shipmentDate: todayValue(),
   };
 }
 
@@ -83,7 +77,7 @@ export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFor
     getInitialPaymentDetails,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const sessionStartedRef = useRef(false);
+  const sessionRequestRef = useRef<Promise<string> | null>(null);
 
   useEffect(() => {
     setForm((current) => ({
@@ -94,19 +88,25 @@ export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFor
     }));
   }, [lockers]);
 
-  useEffect(() => {
-    if (sessionStartedRef.current) {
-      return;
+  const StartSession = async (): Promise<string> => {
+    if (sessionId) {
+      return sessionId;
     }
 
-    sessionStartedRef.current = true;
-    void startShipmentRegistration()
-      .then((session) => setSessionId(session.sessionId))
-      .catch((caught) => {
-        sessionStartedRef.current = false;
-        onError(caught instanceof Error ? caught.message : 'Failed to start registration session.');
-      });
-  }, [onError]);
+    if (!sessionRequestRef.current) {
+      sessionRequestRef.current = startShipmentRegistration()
+        .then((session) => {
+          setSessionId(session.sessionId);
+          return session.sessionId;
+        })
+        .catch((caught) => {
+          sessionRequestRef.current = null;
+          throw caught;
+        });
+    }
+
+    return sessionRequestRef.current;
+  };
 
   const setPartyField = (
     side: 'sender' | 'receiver',
@@ -138,7 +138,6 @@ export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFor
     size: form.size,
     dispatchAddress: form.dispatchLockerAddress,
     destinationAddress: form.destinationLockerAddress,
-    shipmentDate: form.shipmentDate,
   });
 
   const ValidateFormData = (payload: ShipmentCreatePayload): boolean => {
@@ -168,24 +167,19 @@ export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFor
     return true;
   };
 
-  const DeleteSession = async () => {
-    if (!sessionId) {
+  const DeleteSession = async (activeSessionId = sessionId) => {
+    if (!activeSessionId) {
       return;
     }
 
     try {
-      await cancelShipmentRegistrationSession(sessionId);
+      await cancelShipmentRegistrationSession(activeSessionId);
     } catch {
       // Session cleanup is best-effort because the registration is already completed or abandoned.
     }
   };
 
   const FinishForm = async () => {
-    if (!sessionId) {
-      onError('Registration session is still starting. Try again in a moment.');
-      return;
-    }
-
     const payload = RegistrationData();
     if (!ValidateFormData(payload)) {
       return;
@@ -193,7 +187,8 @@ export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFor
 
     setIsSubmitting(true);
     try {
-      const nextPreview = await validateShipmentRegistrationForm(sessionId, payload);
+      const activeSessionId = await StartSession();
+      const nextPreview = await validateShipmentRegistrationForm(activeSessionId, payload);
       setPreview(nextPreview);
       setCreateStep('review');
     } catch (caught) {
@@ -204,22 +199,21 @@ export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFor
   };
 
   const ConfirmForm = async () => {
-    if (!sessionId) {
-      onError('Registration session is missing.');
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      const registrationResult = await confirmShipmentRegistration(sessionId, RegistrationData());
+      const activeSessionId = await StartSession();
+      const registrationResult = await confirmShipmentRegistration(
+        activeSessionId,
+        RegistrationData(),
+      );
 
       if (registrationResult.result === 'registered') {
         await onCreateComplete(registrationResult.shipment, registrationResult.message);
-        await DeleteSession();
+        await DeleteSession(activeSessionId);
         return;
       }
 
-      setPaymentRequest(await requestShipmentPaymentDetails(sessionId));
+      setPaymentRequest(await requestShipmentPaymentDetails(activeSessionId));
       setCreateStep('payment');
     } catch (caught) {
       onError(caught instanceof Error ? caught.message : 'Failed to confirm registration.');
@@ -229,11 +223,6 @@ export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFor
   };
 
   const PayForShipment = async () => {
-    if (!sessionId) {
-      onError('Registration session is missing.');
-      return;
-    }
-
     if (
       paymentDetails.cardHolder.trim().length < 2 ||
       paymentDetails.cardNumber.trim().length < 12 ||
@@ -245,7 +234,8 @@ export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFor
 
     setIsSubmitting(true);
     try {
-      const paymentResult = await sendShipmentPaymentDetails(sessionId, {
+      const activeSessionId = await StartSession();
+      const paymentResult = await sendShipmentPaymentDetails(activeSessionId, {
         cancelPayment: false,
         paymentDetails: {
           ...paymentDetails,
@@ -261,7 +251,7 @@ export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFor
       }
 
       await onCreateComplete(paymentResult.shipment, paymentResult.message);
-      await DeleteSession();
+      await DeleteSession(activeSessionId);
     } catch (caught) {
       onError(caught instanceof Error ? caught.message : 'Failed to process payment.');
     } finally {
@@ -299,10 +289,6 @@ export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFor
           <div>
             <span>Size</span>
             <strong>{preview.registrationData.size.toUpperCase()}</strong>
-          </div>
-          <div>
-            <span>Date</span>
-            <strong>{preview.registrationData.shipmentDate ?? '-'}</strong>
           </div>
           <div>
             <span>Amount</span>
@@ -503,14 +489,6 @@ export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFor
             <option value="m">M</option>
             <option value="l">L</option>
           </select>
-        </label>
-        <label>
-          <span>Shipment date</span>
-          <input
-            type="date"
-            value={form.shipmentDate}
-            onChange={(event) => setForm({ ...form, shipmentDate: event.target.value })}
-          />
         </label>
       </div>
 
