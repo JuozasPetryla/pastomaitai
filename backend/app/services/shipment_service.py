@@ -64,6 +64,10 @@ def _to_shipment_response(shipment: Siunta) -> ShipmentResponse:
     )
 
 
+def to_shipment_response(shipment: Siunta) -> ShipmentResponse:
+    return _to_shipment_response(shipment)
+
+
 async def _commit_or_409(session: AsyncSession) -> None:
     try:
         await session.commit()
@@ -124,6 +128,16 @@ async def _get_shipment_model(session: AsyncSession, shipment_id: int) -> Siunta
     return shipment
 
 
+async def get_shipment_model(session: AsyncSession, shipment_id: int) -> Siunta:
+    return await _get_shipment_model(session, shipment_id)
+
+
+async def save_shipment(session: AsyncSession, shipment: Siunta) -> Siunta:
+    shipment.updated_at = func.now()
+    await _commit_or_409(session)
+    return await _get_shipment_model(session, shipment.id)
+
+
 async def list_shipments(
     session: AsyncSession,
     *,
@@ -167,7 +181,10 @@ def calculate_shipment_price(size: str) -> Decimal:
     return PRICE_BY_SIZE[size]
 
 
-async def create_shipment(session: AsyncSession, payload: ShipmentCreate) -> ShipmentResponse:
+async def create_prepared_shipment_model(
+    session: AsyncSession,
+    payload: ShipmentCreate,
+) -> Siunta:
     sender_role = await _get_or_create_party(session, payload.siuntejas, Siuntejas)
     receiver_role = await _get_or_create_party(session, payload.gavejas, Gavejas)
     order_number = await _next_order_number(session)
@@ -182,7 +199,7 @@ async def create_shipment(session: AsyncSession, payload: ShipmentCreate) -> Shi
         gavimo_adresas=payload.gavimo_adresas,
         siuntimo_adresas=payload.siuntimo_adresas,
         data=payload.data,
-        busena=SiuntosBusena.uzregistruota,
+        busena=SiuntosBusena.parengta,
         siuntos_kodas=shipment_code,
         suma=calculate_shipment_price(payload.dydis.value),
         saskaita=payload.saskaita or f"MOKEJIMAS-{shipment_code}",
@@ -191,6 +208,13 @@ async def create_shipment(session: AsyncSession, payload: ShipmentCreate) -> Shi
     session.add(shipment)
     await session.flush()
     await _commit_or_409(session)
+    return await _get_shipment_model(session, shipment.id)
+
+
+async def create_shipment(session: AsyncSession, payload: ShipmentCreate) -> ShipmentResponse:
+    shipment = await create_prepared_shipment_model(session, payload)
+    shipment.busena = SiuntosBusena.uzregistruota
+    shipment = await save_shipment(session, shipment)
     return await get_shipment(session, shipment.id)
 
 

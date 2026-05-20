@@ -70,3 +70,55 @@ export type ShipmentCreatePayload = {
 export type ShipmentUpdatePayload = Partial<ShipmentCreatePayload> & {
   status?: ShipmentStatus;
 };
+
+export type ShipmentRegistrationSession = {
+  sessionId: string;
+};
+
+export type ShipmentRegistrationPreview = {
+  sessionId: string;
+  registrationData: ShipmentCreatePayload;
+  amount: number;
+};
+
+export type ShipmentPaymentRequest = {
+  shipmentId: number;
+  orderNumber: number;
+  shipmentCode: string;
+  amount: number;
+  invoice: string | null;
+  payAtLocker: boolean;
+  status: 'pending' | 'paid_at_locker' | 'online_required';
+};
+
+export type ShipmentRegistrationResult = {
+  result: 'payment_required' | 'registered';
+  shipment: Shipment;
+  paymentRequest: ShipmentPaymentRequest | null;
+  parcelLabel: string | null;
+  message: string;
+};
+
+export type ShipmentPaymentDetails = {
+  cardHolder: string;
+  cardNumber: string;
+  expiryMonth: number;
+  expiryYear: number;
+  cvv: string;
+};
+
+export type ShipmentPaymentAction =
+  | {
+      cancelPayment: true;
+    }
+  | {
+      cancelPayment: false;
+      paymentDetails: ShipmentPaymentDetails;
+    };
+
+export type ShipmentPaymentResult = {
+  result: 'confirmed' | 'canceled' | 'unsuccessful';
+  shipment: Shipment;
+  parcelLabel: string | null;
+  message: string;
+};
