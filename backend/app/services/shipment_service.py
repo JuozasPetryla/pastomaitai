@@ -8,7 +8,6 @@ from sqlalchemy.orm import selectinload
 
 from app.models.person import Asmuo, Gavejas, Siuntejas
 from app.models.shipment import Siunta, SiuntosBusena
-from app.services import notification_service
 from app.schemas.shipment import (
     ShipmentCreate,
     ShipmentListItem,
@@ -17,6 +16,7 @@ from app.schemas.shipment import (
     ShipmentResponse,
     ShipmentUpdate,
 )
+from app.services import notification_service
 
 PRICE_BY_SIZE: dict[str, Decimal] = {
     "s": Decimal("2.49"),
@@ -132,6 +132,18 @@ async def get_shipment_model(session: AsyncSession, shipment_id: int) -> Siunta:
     return await _get_shipment_model(session, shipment_id)
 
 
+async def get_shipment_by_code_model(session: AsyncSession, shipment_code: str) -> Siunta:
+    query = select(Siunta).options(*_shipment_load_options()).where(
+        Siunta.siuntos_kodas == shipment_code
+    )
+    shipment = (await session.execute(query)).scalar_one_or_none()
+
+    if shipment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shipment not found.")
+
+    return shipment
+
+
 async def save_shipment(session: AsyncSession, shipment: Siunta) -> Siunta:
     shipment.updated_at = func.now()
     await _commit_or_409(session)
@@ -203,7 +215,7 @@ async def create_prepared_shipment_model(
         siuntos_kodas=shipment_code,
         suma=calculate_shipment_price(payload.dydis.value),
         saskaita=payload.saskaita or f"MOKEJIMAS-{shipment_code}",
-        apmokamas_pastomate=payload.apmokamas_pastomate,
+        apmokamas_pastomate=False,
     )
     session.add(shipment)
     await session.flush()

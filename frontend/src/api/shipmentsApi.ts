@@ -1,16 +1,13 @@
-import { apiDelete, apiGet, apiPatch, apiPost, apiRequest } from './client';
+import { apiDelete, apiGet, apiPost, apiRequest } from './client';
 import type {
   Shipment,
   ShipmentCreatePayload,
-  ShipmentFilters,
-  ShipmentListItem,
   ShipmentPaymentAction,
   ShipmentPaymentRequest,
   ShipmentPaymentResult,
   ShipmentRegistrationPreview,
   ShipmentRegistrationResult,
   ShipmentRegistrationSession,
-  ShipmentUpdatePayload,
 } from '../models/shipment';
 
 type ApiShipmentStatus =
@@ -31,20 +28,7 @@ type ShipmentPartyResponse = {
   el_pastas: string;
 };
 
-type ShipmentListItemResponse = {
-  id: number;
-  siuntos_kodas: string;
-  busena: ApiShipmentStatus;
-  dydis: Shipment['size'];
-  siuntimo_adresas: string;
-  gavimo_adresas: string;
-  data: string;
-  created_at: string;
-  siuntejas: string;
-  gavejas: string;
-};
-
-type ShipmentResponse = {
+export type ShipmentResponse = {
   id: number;
   uzsakymo_nr: number;
   siuntos_kodas: string;
@@ -80,7 +64,7 @@ type ApiShipmentCreatePayload = {
   gavimo_adresas: string;
   siuntimo_adresas: string;
   data?: string;
-  apmokamas_pastomate: boolean;
+  apmokamas_pastomate: false;
 };
 
 type RegistrationSessionResponse = {
@@ -100,7 +84,7 @@ type PaymentRequestResponse = {
   amount: number | string;
   invoice: string | null;
   pay_at_locker: boolean;
-  status: 'pending' | 'paid_at_locker' | 'online_required';
+  status: 'pending' | 'online_required';
 };
 
 type RegistrationResultResponse = {
@@ -129,17 +113,6 @@ const shipmentStatusFromApi: Record<ApiShipmentStatus, Shipment['status']> = {
   atsaukta: 'cancelled',
 };
 
-const shipmentStatusToApi: Record<Shipment['status'], ApiShipmentStatus> = {
-  prepared: 'parengta',
-  paid: 'apmoketa',
-  registered: 'uzregistruota',
-  inserted: 'ideta',
-  in_transit: 'tranzite',
-  delivered: 'pristatyta',
-  collected: 'atsiimta',
-  cancelled: 'atsaukta',
-};
-
 function toShipmentParty(party: ShipmentPartyResponse): Shipment['sender'] {
   return {
     personId: party.asmuo_id,
@@ -150,22 +123,7 @@ function toShipmentParty(party: ShipmentPartyResponse): Shipment['sender'] {
   };
 }
 
-function toShipmentListItem(response: ShipmentListItemResponse): ShipmentListItem {
-  return {
-    id: response.id,
-    shipmentCode: response.siuntos_kodas,
-    status: shipmentStatusFromApi[response.busena],
-    size: response.dydis,
-    dispatchAddress: response.siuntimo_adresas,
-    destinationAddress: response.gavimo_adresas,
-    shipmentDate: response.data,
-    createdAt: response.created_at,
-    sender: response.siuntejas,
-    receiver: response.gavejas,
-  };
-}
-
-function toShipment(response: ShipmentResponse): Shipment {
+export function toShipment(response: ShipmentResponse): Shipment {
   return {
     id: response.id,
     orderNumber: response.uzsakymo_nr,
@@ -177,7 +135,6 @@ function toShipment(response: ShipmentResponse): Shipment {
     status: shipmentStatusFromApi[response.busena],
     amount: Number(response.suma),
     invoice: response.saskaita,
-    paymentAtLocker: response.apmokamas_pastomate,
     lockerCellId: response.pastomato_skyrius_id,
     createdAt: response.created_at,
     updatedAt: response.updated_at,
@@ -204,7 +161,6 @@ function fromPayload(payload: ApiShipmentCreatePayload): ShipmentCreatePayload {
     destinationAddress: payload.gavimo_adresas,
     dispatchAddress: payload.siuntimo_adresas,
     shipmentDate: payload.data,
-    paymentAtLocker: payload.apmokamas_pastomate,
   };
 }
 
@@ -215,7 +171,6 @@ function toPaymentRequest(response: PaymentRequestResponse): ShipmentPaymentRequ
     shipmentCode: response.shipment_code,
     amount: Number(response.amount),
     invoice: response.invoice,
-    payAtLocker: response.pay_at_locker,
     status: response.status,
   };
 }
@@ -247,41 +202,6 @@ function toPaymentResult(response: PaymentResultResponse): ShipmentPaymentResult
   };
 }
 
-function toPayload(payload: ShipmentCreatePayload | ShipmentUpdatePayload) {
-  return {
-    ...(payload.sender
-      ? {
-          siuntejas: {
-            vardas: payload.sender.firstName,
-            pavarde: payload.sender.lastName,
-            telefono_nr: payload.sender.phoneNumber,
-            el_pastas: payload.sender.email,
-          },
-        }
-      : {}),
-    ...(payload.receiver
-      ? {
-          gavejas: {
-            vardas: payload.receiver.firstName,
-            pavarde: payload.receiver.lastName,
-            telefono_nr: payload.receiver.phoneNumber,
-            el_pastas: payload.receiver.email,
-          },
-        }
-      : {}),
-    ...(payload.size ? { dydis: payload.size } : {}),
-    ...(payload.destinationAddress ? { gavimo_adresas: payload.destinationAddress } : {}),
-    ...(payload.dispatchAddress ? { siuntimo_adresas: payload.dispatchAddress } : {}),
-    ...(payload.shipmentDate ? { data: payload.shipmentDate } : {}),
-    ...(payload.paymentAtLocker !== undefined
-      ? { apmokamas_pastomate: payload.paymentAtLocker }
-      : {}),
-    ...('status' in payload && payload.status
-      ? { busena: shipmentStatusToApi[payload.status] }
-      : {}),
-  };
-}
-
 function toCreatePayload(payload: ShipmentCreatePayload): ApiShipmentCreatePayload {
   return {
     siuntejas: {
@@ -300,7 +220,7 @@ function toCreatePayload(payload: ShipmentCreatePayload): ApiShipmentCreatePaylo
     gavimo_adresas: payload.destinationAddress,
     siuntimo_adresas: payload.dispatchAddress,
     ...(payload.shipmentDate ? { data: payload.shipmentDate } : {}),
-    apmokamas_pastomate: payload.paymentAtLocker,
+    apmokamas_pastomate: false,
   };
 }
 
@@ -319,50 +239,6 @@ function toPaymentActionPayload(action: ShipmentPaymentAction) {
       cvv: action.paymentDetails.cvv,
     },
   };
-}
-
-export async function fetchShipments(filters: ShipmentFilters): Promise<ShipmentListItem[]> {
-  const searchParams = new URLSearchParams();
-
-  if (filters.shipmentCode) {
-    searchParams.set('shipment_code', filters.shipmentCode);
-  }
-
-  if (filters.status) {
-    searchParams.set('status', shipmentStatusToApi[filters.status]);
-  }
-
-  const query = searchParams.toString();
-  const response = await apiGet<ShipmentListItemResponse[]>(
-    `/api/shipments${query ? `?${query}` : ''}`,
-  );
-
-  return response.map(toShipmentListItem);
-}
-
-export async function fetchShipment(id: number): Promise<Shipment> {
-  const response = await apiGet<ShipmentResponse>(`/api/shipments/${id}`);
-  return toShipment(response);
-}
-
-export async function createShipment(payload: ShipmentCreatePayload): Promise<Shipment> {
-  const response = await apiPost<ShipmentResponse, ReturnType<typeof toPayload>>(
-    '/api/shipments',
-    toPayload(payload),
-  );
-  return toShipment(response);
-}
-
-export async function updateShipment(id: number, payload: ShipmentUpdatePayload): Promise<Shipment> {
-  const response = await apiPatch<ShipmentResponse, ReturnType<typeof toPayload>>(
-    `/api/shipments/${id}`,
-    toPayload(payload),
-  );
-  return toShipment(response);
-}
-
-export async function deleteShipment(id: number): Promise<void> {
-  await apiDelete(`/api/shipments/${id}`);
 }
 
 export async function startShipmentRegistration(): Promise<ShipmentRegistrationSession> {

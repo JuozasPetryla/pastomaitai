@@ -19,16 +19,14 @@ class MockBankResult:
 
 
 def CreatePayment(shipment: Siunta) -> PaymentRequestRead:
-    payment_status: Literal["pending", "paid_at_locker", "online_required"]
-    payment_status = "paid_at_locker" if shipment.apmokamas_pastomate else "online_required"
     return PaymentRequestRead(
         shipment_id=shipment.id,
         order_number=shipment.uzsakymo_nr,
         shipment_code=shipment.siuntos_kodas,
         amount=Decimal(shipment.suma),
         invoice=shipment.saskaita,
-        pay_at_locker=shipment.apmokamas_pastomate,
-        status=payment_status,
+        pay_at_locker=False,
+        status="online_required",
     )
 
 
@@ -89,6 +87,10 @@ def CheckStatus(payment_status: Literal["confirmed", "unsuccessful"]) -> bool:
     return payment_status == "confirmed"
 
 
+def CheckPaymentResult(payment_status: Literal["confirmed", "unsuccessful"]) -> bool:
+    return CheckStatus(payment_status)
+
+
 async def SetToCancel(session: AsyncSession, shipment_id: int) -> Siunta:
     shipment = await shipment_service.get_shipment_model(session, shipment_id)
     shipment.busena = SiuntosBusena.atsaukta
@@ -120,7 +122,7 @@ async def PayOnline(
     bank_result = SendPaymentDetails(payload.payment_details)
     payment_status = GetPaymentStatus(bank_result)
 
-    if CheckStatus(payment_status):
+    if CheckPaymentResult(payment_status):
         shipment = await SetToPayed(session, shipment_id)
         return "confirmed", shipment
 

@@ -20,19 +20,6 @@ export type ShipmentParty = {
 
 export type ShipmentPartyInput = Omit<ShipmentParty, 'personId'>;
 
-export type ShipmentListItem = {
-  id: number;
-  shipmentCode: string;
-  status: ShipmentStatus;
-  size: ShipmentSize;
-  dispatchAddress: string;
-  destinationAddress: string;
-  shipmentDate: string;
-  createdAt: string;
-  sender: string;
-  receiver: string;
-};
-
 export type Shipment = {
   id: number;
   orderNumber: number;
@@ -44,17 +31,11 @@ export type Shipment = {
   status: ShipmentStatus;
   amount: number;
   invoice: string | null;
-  paymentAtLocker: boolean;
   lockerCellId: number | null;
   createdAt: string;
   updatedAt: string;
   sender: ShipmentParty;
   receiver: ShipmentParty;
-};
-
-export type ShipmentFilters = {
-  shipmentCode: string;
-  status: ShipmentStatus | '';
 };
 
 export type ShipmentCreatePayload = {
@@ -64,11 +45,6 @@ export type ShipmentCreatePayload = {
   destinationAddress: string;
   dispatchAddress: string;
   shipmentDate?: string;
-  paymentAtLocker: boolean;
-};
-
-export type ShipmentUpdatePayload = Partial<ShipmentCreatePayload> & {
-  status?: ShipmentStatus;
 };
 
 export type ShipmentRegistrationSession = {
@@ -87,8 +63,7 @@ export type ShipmentPaymentRequest = {
   shipmentCode: string;
   amount: number;
   invoice: string | null;
-  payAtLocker: boolean;
-  status: 'pending' | 'paid_at_locker' | 'online_required';
+  status: 'pending' | 'online_required';
 };
 
 export type ShipmentRegistrationResult = {

@@ -69,7 +69,7 @@ async def create_locker(session: AsyncSession, payload: PastomatasCreate) -> Pas
 
     locker = Pastomatas(
         adresas=payload.adresas,
-        busena=PastomatoBusena.neaktyvus,
+        busena=PastomatoBusena.aktyvus,
         produkto_kodas=payload.produkto_kodas,
     )
     locker_number = 1

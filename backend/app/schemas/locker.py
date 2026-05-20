@@ -1,9 +1,11 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.locker import PastomatoBusena
-from app.models.shipment import SiuntosDydis
+from app.models.shipment import SiuntosBusena, SiuntosDydis
+from app.schemas.shipment import ShipmentResponse
 
 
 class PastomatoSkyriusRead(BaseModel):
@@ -66,3 +68,43 @@ class PastomatasUpdate(BaseModel):
         if self.adresas is None and self.busena is None and self.produkto_kodas is None:
             raise ValueError("Reikia pateikti bent viena keiciama lauka")
         return self
+
+
+class LockerShipmentCodeRequest(BaseModel):
+    siuntos_kodas: str = Field(min_length=3, max_length=64)
+
+
+class LockerCellResponse(BaseModel):
+    id: int
+    numeris: int
+    dydis: SiuntosDydis
+    uzimtas: bool
+    dureles_atidarytos: bool
+    siuntos_kodas: str | None = None
+    siuntos_busena: SiuntosBusena | None = None
+
+
+class LockerActiveSessionResponse(BaseModel):
+    veiksmas: Literal["atsiemimas"]
+    siuntos_id: int
+    siuntos_kodas: str
+    skyriaus_id: int
+    skyriaus_numeris: int
+    dureles_atidarytos: bool
+
+
+class LockerStateResponse(BaseModel):
+    id: int
+    produkto_kodas: str
+    adresas: str
+    busena: PastomatoBusena
+    created_at: datetime
+    updated_at: datetime
+    skyriai: list[LockerCellResponse]
+    aktyvi_sesija: LockerActiveSessionResponse | None = None
+
+
+class LockerActionResponse(BaseModel):
+    zinute: str
+    locker: LockerStateResponse
+    siunta: ShipmentResponse | None = None

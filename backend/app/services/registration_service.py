@@ -105,17 +105,6 @@ async def RegisterParcel(
     session_state.shipment_id = shipment.id
     session_state.payment_request = payment_request
 
-    if shipment.apmokamas_pastomate:
-        shipment = await UpdateStatus(session, shipment.id, SiuntosBusena.uzregistruota)
-        parcel_label = GenerateParcelLabel(shipment)
-        return OnlineRegistrationResponse(
-            result="registered",
-            shipment=shipment_service.to_shipment_response(shipment),
-            payment_request=payment_request,
-            parcel_label=parcel_label,
-            message="Shipment registered. Payment will be completed at the locker.",
-        )
-
     return OnlineRegistrationResponse(
         result="payment_required",
         shipment=shipment_service.to_shipment_response(shipment),

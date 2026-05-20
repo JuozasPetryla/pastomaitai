@@ -23,7 +23,7 @@ class PaymentRequestRead(BaseModel):
     amount: Decimal = Field(decimal_places=2, max_digits=10)
     invoice: str | None
     pay_at_locker: bool
-    status: Literal["pending", "paid_at_locker", "online_required"]
+    status: Literal["pending", "online_required"]
 
 
 class OnlineRegistrationResponse(BaseModel):

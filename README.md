@@ -45,7 +45,9 @@ docker compose up -d postgres
 cd backend
 python -m venv .venv
 source .venv/bin/activate
+(WINDOWS USERS: .venv/Scripts/Activate.ps1)
 pip install -e ".[dev]"
+(WINDOWS USERS: python -m pip install -e ".[dev]")
 python -m uvicorn app.main:app --reload
 ```
 

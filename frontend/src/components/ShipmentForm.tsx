@@ -8,30 +8,21 @@ import {
   startShipmentRegistration,
   validateShipmentRegistrationForm,
 } from '../api/shipmentsApi';
+import type { LockerListItem } from '../models/locker';
 import type {
   Shipment,
   ShipmentCreatePayload,
   ShipmentPaymentDetails,
   ShipmentPaymentRequest,
-  ShipmentRegistrationPreview,
-  ShipmentStatus,
-  ShipmentUpdatePayload,
   ShipmentPartyInput,
+  ShipmentRegistrationPreview,
 } from '../models/shipment';
 
-type ShipmentFormMode = 'create' | 'edit';
 type CreateStep = 'form' | 'review' | 'payment';
 
 type ShipmentFormProps = {
-  mode: ShipmentFormMode;
-  shipment?: Shipment;
-  onCancel: () => void;
-  onCreateComplete: (
-    shipment: Shipment,
-    message: string,
-    outcome?: 'payment_success',
-  ) => Promise<void>;
-  onUpdate: (payload: ShipmentUpdatePayload) => Promise<void>;
+  lockers: LockerListItem[];
+  onCreateComplete: (shipment: Shipment, message: string) => Promise<void>;
   onError: (message: string) => void;
 };
 
@@ -39,23 +30,10 @@ type FormState = {
   sender: ShipmentPartyInput;
   receiver: ShipmentPartyInput;
   size: Shipment['size'];
-  dispatchAddress: string;
-  destinationAddress: string;
+  dispatchLockerAddress: string;
+  destinationLockerAddress: string;
   shipmentDate: string;
-  paymentAtLocker: boolean;
-  status: ShipmentStatus;
 };
-
-const statuses: ShipmentStatus[] = [
-  'prepared',
-  'paid',
-  'registered',
-  'inserted',
-  'in_transit',
-  'delivered',
-  'collected',
-  'cancelled',
-];
 
 function emptyParty(): ShipmentPartyInput {
   return {
@@ -70,41 +48,24 @@ function todayValue(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function getInitialState(shipment?: Shipment): FormState {
-  return {
-    sender: shipment
-      ? {
-          firstName: shipment.sender.firstName,
-          lastName: shipment.sender.lastName,
-          phoneNumber: shipment.sender.phoneNumber,
-          email: shipment.sender.email,
-        }
-      : emptyParty(),
-    receiver: shipment
-      ? {
-          firstName: shipment.receiver.firstName,
-          lastName: shipment.receiver.lastName,
-          phoneNumber: shipment.receiver.phoneNumber,
-          email: shipment.receiver.email,
-        }
-      : emptyParty(),
-    size: shipment?.size ?? 'm',
-    dispatchAddress: shipment?.dispatchAddress ?? '',
-    destinationAddress: shipment?.destinationAddress ?? '',
-    shipmentDate: shipment?.shipmentDate ?? todayValue(),
-    paymentAtLocker: shipment?.paymentAtLocker ?? false,
-    status: shipment?.status ?? 'registered',
-  };
-}
-
 function getInitialPaymentDetails(): ShipmentPaymentDetails {
-  const nextYear = new Date().getFullYear() + 1;
   return {
     cardHolder: '',
     cardNumber: '',
     expiryMonth: 12,
-    expiryYear: nextYear,
+    expiryYear: new Date().getFullYear() + 1,
     cvv: '',
+  };
+}
+
+function getInitialState(lockers: LockerListItem[]): FormState {
+  return {
+    sender: emptyParty(),
+    receiver: emptyParty(),
+    size: 'm',
+    dispatchLockerAddress: lockers[0]?.address ?? '',
+    destinationLockerAddress: lockers[1]?.address ?? lockers[0]?.address ?? '',
+    shipmentDate: todayValue(),
   };
 }
 
@@ -112,15 +73,8 @@ function formatPartyLabel(party: ShipmentPartyInput): string {
   return `${party.firstName} ${party.lastName}`.trim();
 }
 
-export function ShipmentForm({
-  mode,
-  shipment,
-  onCancel,
-  onCreateComplete,
-  onUpdate,
-  onError,
-}: ShipmentFormProps) {
-  const [form, setForm] = useState<FormState>(() => getInitialState(shipment));
+export function ShipmentForm({ lockers, onCreateComplete, onError }: ShipmentFormProps) {
+  const [form, setForm] = useState<FormState>(() => getInitialState(lockers));
   const [createStep, setCreateStep] = useState<CreateStep>('form');
   const [sessionId, setSessionId] = useState<string>();
   const [preview, setPreview] = useState<ShipmentRegistrationPreview>();
@@ -132,15 +86,16 @@ export function ShipmentForm({
   const sessionStartedRef = useRef(false);
 
   useEffect(() => {
-    setForm(getInitialState(shipment));
-    setCreateStep('form');
-    setPreview(undefined);
-    setPaymentRequest(undefined);
-    setPaymentDetails(getInitialPaymentDetails());
-  }, [shipment, mode]);
+    setForm((current) => ({
+      ...current,
+      dispatchLockerAddress: current.dispatchLockerAddress || lockers[0]?.address || '',
+      destinationLockerAddress:
+        current.destinationLockerAddress || lockers[1]?.address || lockers[0]?.address || '',
+    }));
+  }, [lockers]);
 
   useEffect(() => {
-    if (mode !== 'create' || sessionStartedRef.current) {
+    if (sessionStartedRef.current) {
       return;
     }
 
@@ -151,7 +106,7 @@ export function ShipmentForm({
         sessionStartedRef.current = false;
         onError(caught instanceof Error ? caught.message : 'Failed to start registration session.');
       });
-  }, [mode, onError]);
+  }, [onError]);
 
   const setPartyField = (
     side: 'sender' | 'receiver',
@@ -167,7 +122,7 @@ export function ShipmentForm({
     }));
   };
 
-  const buildCreatePayload = (): ShipmentCreatePayload => ({
+  const RegistrationData = (): ShipmentCreatePayload => ({
     sender: {
       firstName: form.sender.firstName.trim(),
       lastName: form.sender.lastName.trim(),
@@ -181,56 +136,58 @@ export function ShipmentForm({
       email: form.receiver.email.trim(),
     },
     size: form.size,
-    dispatchAddress: form.dispatchAddress.trim(),
-    destinationAddress: form.destinationAddress.trim(),
+    dispatchAddress: form.dispatchLockerAddress,
+    destinationAddress: form.destinationLockerAddress,
     shipmentDate: form.shipmentDate,
-    paymentAtLocker: form.paymentAtLocker,
   });
 
-  const validateCreatePayload = (payload: ShipmentCreatePayload): boolean => {
-    const shortNames = [
+  const ValidateFormData = (payload: ShipmentCreatePayload): boolean => {
+    const requiredFields = [
       payload.sender.firstName,
       payload.sender.lastName,
-      payload.receiver.firstName,
-      payload.receiver.lastName,
-    ];
-    const shortFields = [
       payload.sender.phoneNumber,
       payload.sender.email,
+      payload.receiver.firstName,
+      payload.receiver.lastName,
       payload.receiver.phoneNumber,
       payload.receiver.email,
       payload.dispatchAddress,
       payload.destinationAddress,
     ];
 
-    if (shortNames.some((field) => field.length < 1) || shortFields.some((field) => field.length < 3)) {
-      onError('Check sender, receiver and address data before continuing.');
+    if (requiredFields.some((field) => field.length < 3)) {
+      onError('Fill in sender, receiver and locker information before continuing.');
+      return false;
+    }
+
+    if (payload.dispatchAddress === payload.destinationAddress) {
+      onError('Choose different lockers for sending and receiving.');
       return false;
     }
 
     return true;
   };
 
-  const closeCreateForm = async () => {
-    if (sessionId) {
-      try {
-        await cancelShipmentRegistrationSession(sessionId);
-      } catch {
-        // Ignore cleanup errors for local mock sessions.
-      }
+  const DeleteSession = async () => {
+    if (!sessionId) {
+      return;
     }
 
-    onCancel();
+    try {
+      await cancelShipmentRegistrationSession(sessionId);
+    } catch {
+      // Session cleanup is best-effort because the registration is already completed or abandoned.
+    }
   };
 
-  const submitCreateForm = async () => {
+  const FinishForm = async () => {
     if (!sessionId) {
       onError('Registration session is still starting. Try again in a moment.');
       return;
     }
 
-    const payload = buildCreatePayload();
-    if (!validateCreatePayload(payload)) {
+    const payload = RegistrationData();
+    if (!ValidateFormData(payload)) {
       return;
     }
 
@@ -246,30 +203,23 @@ export function ShipmentForm({
     }
   };
 
-  const confirmRegistration = async () => {
+  const ConfirmForm = async () => {
     if (!sessionId) {
       onError('Registration session is missing.');
       return;
     }
 
-    const payload = buildCreatePayload();
     setIsSubmitting(true);
     try {
-      const registrationResult = await confirmShipmentRegistration(sessionId, payload);
+      const registrationResult = await confirmShipmentRegistration(sessionId, RegistrationData());
 
       if (registrationResult.result === 'registered') {
-        await onCreateComplete(
-          registrationResult.shipment,
-          registrationResult.parcelLabel
-            ? `${registrationResult.message} Parcel label: ${registrationResult.parcelLabel}.`
-            : registrationResult.message,
-        );
-        await closeCreateForm();
+        await onCreateComplete(registrationResult.shipment, registrationResult.message);
+        await DeleteSession();
         return;
       }
 
-      const nextPaymentRequest = await requestShipmentPaymentDetails(sessionId);
-      setPaymentRequest(nextPaymentRequest);
+      setPaymentRequest(await requestShipmentPaymentDetails(sessionId));
       setCreateStep('payment');
     } catch (caught) {
       onError(caught instanceof Error ? caught.message : 'Failed to confirm registration.');
@@ -278,7 +228,7 @@ export function ShipmentForm({
     }
   };
 
-  const submitPayment = async () => {
+  const PayForShipment = async () => {
     if (!sessionId) {
       onError('Registration session is missing.');
       return;
@@ -305,19 +255,13 @@ export function ShipmentForm({
         },
       });
 
-      await onCreateComplete(
-        paymentResult.shipment,
-        paymentResult.parcelLabel
-          ? `${paymentResult.message} Parcel label: ${paymentResult.parcelLabel}.`
-          : paymentResult.message,
-        paymentResult.result === 'confirmed' ? 'payment_success' : undefined,
-      );
-
       if (paymentResult.result !== 'confirmed') {
         onError(paymentResult.message);
+        return;
       }
 
-      await closeCreateForm();
+      await onCreateComplete(paymentResult.shipment, paymentResult.message);
+      await DeleteSession();
     } catch (caught) {
       onError(caught instanceof Error ? caught.message : 'Failed to process payment.');
     } finally {
@@ -325,149 +269,69 @@ export function ShipmentForm({
     }
   };
 
-  const cancelPayment = async () => {
-    if (!sessionId) {
-      onError('Registration session is missing.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const paymentResult = await sendShipmentPaymentDetails(sessionId, {
-        cancelPayment: true,
-      });
-      await onCreateComplete(paymentResult.shipment, paymentResult.message);
-      await closeCreateForm();
-    } catch (caught) {
-      onError(caught instanceof Error ? caught.message : 'Failed to cancel payment.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const submitEditForm = async () => {
-    if (form.dispatchAddress.trim().length < 3 || form.destinationAddress.trim().length < 3) {
-      onError('Check the dispatch and destination addresses.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await onUpdate({
-        sender: form.sender,
-        receiver: form.receiver,
-        size: form.size,
-        dispatchAddress: form.dispatchAddress.trim(),
-        destinationAddress: form.destinationAddress.trim(),
-        shipmentDate: form.shipmentDate,
-        paymentAtLocker: form.paymentAtLocker,
-        status: form.status,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (mode === 'create' && createStep === 'review' && preview) {
+  if (createStep === 'review' && preview) {
     return (
-      <section className="locker-form" aria-label="Shipment registration review">
-        <header>
-          <h3>Review registration</h3>
-          <button type="button" onClick={() => void closeCreateForm()}>
-            Close
-          </button>
-        </header>
-
-        <article className="detail-panel payment-preview-card">
-          <header>
-            <p>Review and confirm</p>
-            <h3>{preview.registrationData.size.toUpperCase()} parcel</h3>
-          </header>
-
-          <div className="payment-details">
-            <div>
-              <span>Sender</span>
-              <strong>{formatPartyLabel(preview.registrationData.sender)}</strong>
-            </div>
-            <div>
-              <span>Receiver</span>
-              <strong>{formatPartyLabel(preview.registrationData.receiver)}</strong>
-            </div>
-            <div>
-              <span>Dispatch address</span>
-              <strong>{preview.registrationData.dispatchAddress}</strong>
-            </div>
-            <div>
-              <span>Destination address</span>
-              <strong>{preview.registrationData.destinationAddress}</strong>
-            </div>
-            <div>
-              <span>Shipment date</span>
-              <strong>{preview.registrationData.shipmentDate ?? '-'}</strong>
-            </div>
-            <div>
-              <span>Payment method</span>
-              <strong>
-                {preview.registrationData.paymentAtLocker ? 'At locker' : 'Online'}
-              </strong>
-            </div>
-            <div>
-              <span>Amount</span>
-              <strong>{preview.amount.toFixed(2)} EUR</strong>
-            </div>
+      <section className="shipment-form-card" aria-label="Shipment registration review">
+        <div className="shipments-section-header">
+          <div>
+            <p className="eyebrow">Review</p>
+            <h3>Confirm shipment details</h3>
           </div>
-        </article>
+        </div>
+
+        <div className="review-grid">
+          <div>
+            <span>Sender</span>
+            <strong>{formatPartyLabel(preview.registrationData.sender)}</strong>
+          </div>
+          <div>
+            <span>Receiver</span>
+            <strong>{formatPartyLabel(preview.registrationData.receiver)}</strong>
+          </div>
+          <div>
+            <span>Send from</span>
+            <strong>{preview.registrationData.dispatchAddress}</strong>
+          </div>
+          <div>
+            <span>Deliver to</span>
+            <strong>{preview.registrationData.destinationAddress}</strong>
+          </div>
+          <div>
+            <span>Size</span>
+            <strong>{preview.registrationData.size.toUpperCase()}</strong>
+          </div>
+          <div>
+            <span>Date</span>
+            <strong>{preview.registrationData.shipmentDate ?? '-'}</strong>
+          </div>
+          <div>
+            <span>Amount</span>
+            <strong>{preview.amount.toFixed(2)} EUR</strong>
+          </div>
+        </div>
 
         <div className="form-actions">
           <button type="button" disabled={isSubmitting} onClick={() => setCreateStep('form')}>
             Edit
           </button>
-          <button type="button" disabled={isSubmitting} onClick={() => void confirmRegistration()}>
+          <button type="button" disabled={isSubmitting} onClick={() => void ConfirmForm()}>
             Confirm
-          </button>
-          <button type="button" disabled={isSubmitting} onClick={() => void closeCreateForm()}>
-            Cancel
           </button>
         </div>
       </section>
     );
   }
 
-  if (mode === 'create' && createStep === 'payment' && paymentRequest) {
+  if (createStep === 'payment' && paymentRequest) {
     return (
-      <section className="locker-form" aria-label="Shipment online payment">
-        <header>
-          <h3>Pay online</h3>
-          <button type="button" onClick={() => void closeCreateForm()}>
-            Close
-          </button>
-        </header>
-
-        <article className="detail-panel payment-preview-card">
-          <header>
-            <p>Payment request</p>
-            <h3>{paymentRequest.shipmentCode}</h3>
-          </header>
-
-          <div className="payment-details">
-            <div>
-              <span>Order number</span>
-              <strong>{paymentRequest.orderNumber}</strong>
-            </div>
-            <div>
-              <span>Invoice</span>
-              <strong>{paymentRequest.invoice ?? '-'}</strong>
-            </div>
-            <div>
-              <span>Amount</span>
-              <strong>{paymentRequest.amount.toFixed(2)} EUR</strong>
-            </div>
-            <div>
-              <span>Mock bank rule</span>
-              <strong>Card numbers ending in 0000 fail</strong>
-            </div>
+      <section className="shipment-form-card" aria-label="Shipment online payment">
+        <div className="shipments-section-header">
+          <div>
+            <p className="eyebrow">Payment</p>
+            <h3>Pay online</h3>
           </div>
-        </article>
+          <span className="counter-badge">{paymentRequest.amount.toFixed(2)} EUR</span>
+        </div>
 
         <div className="form-grid">
           <label>
@@ -497,10 +361,7 @@ export function ShipmentForm({
               max={12}
               value={paymentDetails.expiryMonth}
               onChange={(event) =>
-                setPaymentDetails({
-                  ...paymentDetails,
-                  expiryMonth: Number(event.target.value),
-                })
+                setPaymentDetails({ ...paymentDetails, expiryMonth: Number(event.target.value) })
               }
             />
           </label>
@@ -511,10 +372,7 @@ export function ShipmentForm({
               min={new Date().getFullYear()}
               value={paymentDetails.expiryYear}
               onChange={(event) =>
-                setPaymentDetails({
-                  ...paymentDetails,
-                  expiryYear: Number(event.target.value),
-                })
+                setPaymentDetails({ ...paymentDetails, expiryYear: Number(event.target.value) })
               }
             />
           </label>
@@ -522,19 +380,17 @@ export function ShipmentForm({
             <span>CVV</span>
             <input
               value={paymentDetails.cvv}
-              onChange={(event) =>
-                setPaymentDetails({ ...paymentDetails, cvv: event.target.value })
-              }
+              onChange={(event) => setPaymentDetails({ ...paymentDetails, cvv: event.target.value })}
             />
           </label>
         </div>
 
         <div className="form-actions">
-          <button type="button" disabled={isSubmitting} onClick={() => void submitPayment()}>
+          <button type="button" disabled={isSubmitting} onClick={() => void PayForShipment()}>
             Confirm payment
           </button>
-          <button type="button" disabled={isSubmitting} onClick={() => void cancelPayment()}>
-            Cancel payment
+          <button type="button" disabled={isSubmitting} onClick={() => setCreateStep('review')}>
+            Back
           </button>
         </div>
       </section>
@@ -542,13 +398,13 @@ export function ShipmentForm({
   }
 
   return (
-    <section className="locker-form" aria-label="Shipment form">
-      <header>
-        <h3>{mode === 'create' ? 'Create shipment' : 'Edit shipment'}</h3>
-        <button type="button" onClick={mode === 'create' ? () => void closeCreateForm() : onCancel}>
-          Close
-        </button>
-      </header>
+    <section className="shipment-form-card" aria-label="Shipment registration form">
+      <div className="shipments-section-header">
+        <div>
+          <p className="eyebrow">Shipment registration</p>
+          <h3>Send a parcel</h3>
+        </div>
+      </div>
 
       <div className="form-grid">
         <label>
@@ -610,21 +466,35 @@ export function ShipmentForm({
           />
         </label>
         <label>
-          <span>Dispatch address</span>
-          <input
-            value={form.dispatchAddress}
-            onChange={(event) => setForm({ ...form, dispatchAddress: event.target.value })}
-          />
+          <span>Send from locker</span>
+          <select
+            value={form.dispatchLockerAddress}
+            onChange={(event) => setForm({ ...form, dispatchLockerAddress: event.target.value })}
+          >
+            <option value="">Choose locker</option>
+            {lockers.map((locker) => (
+              <option key={locker.id} value={locker.address}>
+                {locker.address}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
-          <span>Destination address</span>
-          <input
-            value={form.destinationAddress}
-            onChange={(event) => setForm({ ...form, destinationAddress: event.target.value })}
-          />
+          <span>Deliver to locker</span>
+          <select
+            value={form.destinationLockerAddress}
+            onChange={(event) => setForm({ ...form, destinationLockerAddress: event.target.value })}
+          >
+            <option value="">Choose locker</option>
+            {lockers.map((locker) => (
+              <option key={locker.id} value={locker.address}>
+                {locker.address}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
-          <span>Size</span>
+          <span>Parcel size</span>
           <select
             value={form.size}
             onChange={(event) => setForm({ ...form, size: event.target.value as Shipment['size'] })}
@@ -642,47 +512,11 @@ export function ShipmentForm({
             onChange={(event) => setForm({ ...form, shipmentDate: event.target.value })}
           />
         </label>
-
-        {mode === 'edit' ? (
-          <label>
-            <span>Status</span>
-            <select
-              value={form.status}
-              onChange={(event) => setForm({ ...form, status: event.target.value as ShipmentStatus })}
-            >
-              {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
-
-        <label className="checkbox-label">
-          <span>Payment at locker</span>
-          <input
-            type="checkbox"
-            checked={form.paymentAtLocker}
-            onChange={(event) => setForm({ ...form, paymentAtLocker: event.target.checked })}
-          />
-        </label>
       </div>
 
       <div className="form-actions">
-        <button
-          type="button"
-          disabled={isSubmitting}
-          onClick={() => void (mode === 'create' ? submitCreateForm() : submitEditForm())}
-        >
-          {mode === 'create' ? 'Review' : 'Save'}
-        </button>
-        <button
-          type="button"
-          disabled={isSubmitting}
-          onClick={mode === 'create' ? () => void closeCreateForm() : onCancel}
-        >
-          Cancel
+        <button type="button" disabled={isSubmitting || lockers.length < 2} onClick={() => void FinishForm()}>
+          Continue
         </button>
       </div>
     </section>

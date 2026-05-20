@@ -445,6 +445,28 @@ button {
   margin: 0;
 }
 
+.detail-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.detail-actions button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #18241f;
+  color: #f8f6ed;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.detail-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .detail-panel dl div {
   display: flex;
   justify-content: space-between;
@@ -478,6 +500,17 @@ button {
   display: grid;
   gap: 20px;
   max-width: 1380px;
+}
+
+.shipments-public-page {
+  max-width: 1180px;
+}
+
+.shipments-public-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 24px;
+  align-items: start;
 }
 
 .shipments-dashboard {
@@ -630,6 +663,10 @@ button {
   box-shadow: 0 28px 70px rgb(15 18 14 / 28%);
 }
 
+.locker-terminal-shell-inline {
+  max-width: 1080px;
+}
+
 .locker-terminal-shell-modal {
   width: 100%;
 }
@@ -656,6 +693,10 @@ button {
     linear-gradient(180deg, #eff6eb 0%, #dce7d7 100%);
   color: #173025;
   min-height: 680px;
+}
+
+.locker-screen-compact {
+  min-height: 420px;
 }
 
 .locker-modal-backdrop {
@@ -911,6 +952,27 @@ button {
   box-shadow: 0 20px 40px rgb(24 36 31 / 8%);
 }
 
+.shipment-form-card .form-actions button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #18241f;
+  color: #f8f6ed;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.shipment-form-card .form-actions button:last-child:not(:first-child) {
+  background: #e6e1cf;
+  color: #5e625c;
+}
+
+.shipment-form-card .form-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .checkbox-field {
   grid-auto-flow: column;
   justify-content: start;
@@ -1055,6 +1117,7 @@ button {
 
   .filter-bar,
   .admin-grid,
+  .shipments-public-grid,
   .shipments-dashboard,
   .shipments-content-grid,
   .form-grid,

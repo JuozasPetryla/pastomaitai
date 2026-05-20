@@ -25,6 +25,14 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function parseBlobResponse(response: Response): Promise<Blob> {
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.blob();
+}
+
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
 
@@ -41,12 +49,38 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   return parseResponse<T>(response);
 }
 
+export async function apiRequestBlob(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<Blob> {
+  const headers = new Headers(options.headers);
+
+  if (options.body !== undefined && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  const response = await fetch(`${apiUrl}${path}`, {
+    ...options,
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  });
+
+  return parseBlobResponse(response);
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   return apiRequest<T>(path);
 }
 
 export async function apiPost<TResponse, TPayload>(path: string, payload: TPayload): Promise<TResponse> {
   return apiRequest<TResponse>(path, {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export async function apiPostBlob<TPayload>(path: string, payload: TPayload): Promise<Blob> {
+  return apiRequestBlob(path, {
     method: 'POST',
     body: payload,
   });

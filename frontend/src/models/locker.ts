@@ -15,6 +15,38 @@ export type LockerCell = {
   number: number;
 };
 
+export type LockerAction = 'atsiemimas';
+
+export type DemoLockerCell = {
+  id: number;
+  number: number;
+  size: LockerCellSize;
+  occupied: boolean;
+  doorOpen: boolean;
+  shipmentCode: string | null;
+  shipmentStatus: string | null;
+};
+
+export type LockerSession = {
+  action: LockerAction;
+  shipmentId: number;
+  shipmentCode: string;
+  cellId: number;
+  cellNumber: number;
+  doorOpen: boolean;
+};
+
+export type DemoLockerState = {
+  id: number;
+  productCode: string;
+  address: string;
+  status: LockerStatus;
+  createdAt: string;
+  updatedAt: string;
+  cells: DemoLockerCell[];
+  activeSession: LockerSession | null;
+};
+
 export type Locker = LockerListItem & {
   createdAt: string;
   updatedAt: string;
