@@ -9,6 +9,7 @@ from app.controllers.shipments_controller import router as shipments_router
 from app.controllers.subsystems_controller import router as subsystems_router
 from app.controllers.notifications_controller import router as notifications_router
 from app.controllers.courier_controller import router as courier_router
+from app.controllers.sticker_controller import router as sticker_router
 from app.core.config import settings
 from app.db.session import async_session
 from app.services import notification_service
@@ -34,6 +35,7 @@ app.include_router(administration_router, prefix="/api")
 app.include_router(shipments_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api")
 app.include_router(courier_router, prefix="/api")
+app.include_router(sticker_router, prefix="/api")
 
 
 async def _notification_sender_loop() -> None:
