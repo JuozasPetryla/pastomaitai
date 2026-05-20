@@ -72,6 +72,11 @@ def generate_sticker_pdf(sticker: StickerData) -> bytes:
     try:
         pdf = FPDF(orientation="P", unit="mm", format="A4")
         pdf.add_page()
+        pdf.set_draw_color(0, 0, 0)
+        pdf.set_line_width(0.5)
+        pdf.rect(180, 10, 16, 10)         
+        pdf.line(180, 10, 188, 15)        
+        pdf.line(196, 10, 188, 15)
 
         pdf.set_font("helvetica", style="B", size=16)
         pdf.cell(0, 10, txt="Parcel Sticker", new_x="LMARGIN", new_y="NEXT", align="C")
