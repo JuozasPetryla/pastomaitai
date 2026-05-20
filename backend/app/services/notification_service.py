@@ -1,5 +1,6 @@
 import base64
 import datetime
+from dataclasses import dataclass
 
 import httpx
 from fastapi import HTTPException, status
@@ -17,10 +18,23 @@ from app.schemas.notification import (
     PranesimasRead,
     PranesimasUpdate,
 )
-from app.services import sticker_service
 
 BREVO_EMAIL_ENDPOINT = "https://api.brevo.com/v3/smtp/email"
 BREVO_SMS_ENDPOINT = "https://api.brevo.com/v3/transactionalSMS/sms"
+
+
+@dataclass(frozen=True)
+class EmailAttachment:
+    name: str
+    content: bytes
+
+
+@dataclass(frozen=True)
+class RegistrationConfirmationEmail:
+    recipient_email: str
+    subject: str
+    text_content: str
+    attachments: list[EmailAttachment]
 
 
 async def list_notifications(
@@ -350,39 +364,19 @@ async def send_brevo_email_with_attachments(
     return 200 <= response.status_code < 300
 
 
-def create_registration_confirmation_email_text(shipment: Siunta) -> str:
-    sender = shipment.siuntejas.asmuo
-    receiver = shipment.gavejas.asmuo
-    return (
-        f"Sveiki {sender.vardas} {sender.pavarde},\n\n"
-        f"Jūsų siunta {shipment.siuntos_kodas} sėkmingai užregistruota.\n"
-        f"Gavėjas: {receiver.vardas} {receiver.pavarde}\n"
-        f"Siuntimas iš: {shipment.siuntimo_adresas}\n"
-        f"Pristatymas į: {shipment.gavimo_adresas}\n"
-        f"Dydis: {shipment.dydis.value.upper()}\n\n"
-        "Siuntos lipdukas prisegtas prie šio laiško.\n\n"
-        "Ačiū, kad naudojatės Pastomatais."
-    )
-
-
 async def send_registration_confirmation_email(
-    shipment: Siunta,
-    *,
-    recipient_email: str | None = None,
+    message: RegistrationConfirmationEmail,
 ) -> bool:
-    sticker_data = sticker_service.build_sticker_data_from_shipment(shipment)
-    sticker_pdf = sticker_service.generate_sticker_pdf(sticker_data)
-    attachment_name = f"sticker_{shipment.siuntos_kodas}.pdf"
-    confirmation_recipient = recipient_email or shipment.siuntejas.asmuo.el_pastas
     return await send_brevo_email_with_attachments(
-        recipient_email=confirmation_recipient,
-        subject=f"Siunta {shipment.siuntos_kodas} užregistruota",
-        text_content=create_registration_confirmation_email_text(shipment),
+        recipient_email=message.recipient_email,
+        subject=message.subject,
+        text_content=message.text_content,
         attachments=[
             {
-                "name": attachment_name,
-                "content": base64.b64encode(sticker_pdf).decode("ascii"),
+                "name": attachment.name,
+                "content": base64.b64encode(attachment.content).decode("ascii"),
             }
+            for attachment in message.attachments
         ],
     )
 

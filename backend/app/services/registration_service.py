@@ -16,7 +16,7 @@ from app.schemas.payment import (
     RegistrationSessionRead,
 )
 from app.schemas.shipment import ShipmentCreate
-from app.services import notification_service, payment_service, shipment_service
+from app.services import notification_service, payment_service, shipment_service, sticker_service
 
 
 @dataclass
@@ -89,6 +89,41 @@ def GenerateParcelLabel(shipment: Siunta) -> str:
     return shipment.siuntos_kodas
 
 
+def CreateRegistrationConfirmationText(shipment: Siunta) -> str:
+    sender = shipment.siuntejas.asmuo
+    receiver = shipment.gavejas.asmuo
+    return (
+        f"Sveiki {sender.vardas} {sender.pavarde},\n\n"
+        f"Jūsų siunta {shipment.siuntos_kodas} sėkmingai užregistruota.\n"
+        f"Gavėjas: {receiver.vardas} {receiver.pavarde}\n"
+        f"Siuntimas iš: {shipment.siuntimo_adresas}\n"
+        f"Pristatymas į: {shipment.gavimo_adresas}\n"
+        f"Dydis: {shipment.dydis.value.upper()}\n\n"
+        "Siuntos lipdukas prisegtas prie šio laiško.\n\n"
+        "Ačiū, kad naudojatės Pastomatais."
+    )
+
+
+def CreateRegistrationConfirmationMessage(
+    shipment: Siunta,
+    recipient_email: str | None = None,
+) -> notification_service.RegistrationConfirmationEmail:
+    sticker_data = sticker_service.build_sticker_data_from_shipment(shipment)
+    sticker_pdf = sticker_service.generate_sticker_pdf(sticker_data)
+    attachment_name = f"sticker_{shipment.siuntos_kodas}.pdf"
+    return notification_service.RegistrationConfirmationEmail(
+        recipient_email=recipient_email or shipment.siuntejas.asmuo.el_pastas,
+        subject=f"Siunta {shipment.siuntos_kodas} užregistruota",
+        text_content=CreateRegistrationConfirmationText(shipment),
+        attachments=[
+            notification_service.EmailAttachment(
+                name=attachment_name,
+                content=sticker_pdf,
+            )
+        ],
+    )
+
+
 async def RegisterParcel(
     session: AsyncSession,
     session_id: str,
@@ -146,12 +181,13 @@ async def CompletePayment(
         parcel_label = GenerateParcelLabel(shipment)
         try:
             registration_data = session_state.registration_data
-            await notification_service.send_registration_confirmation_email(
+            confirmation_message = CreateRegistrationConfirmationMessage(
                 shipment,
                 recipient_email=(
                     registration_data.siuntejas.el_pastas if registration_data is not None else None
                 ),
             )
+            await notification_service.send_registration_confirmation_email(confirmation_message)
         except Exception as exc:
             print(f"Failed to send registration confirmation email: {exc}")
         return PaymentResultRead(

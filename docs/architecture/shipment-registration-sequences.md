@@ -72,10 +72,11 @@ else Sender confirms
   RegistrationController -> RegistrationController : PayOnline()
   RegistrationController -> RegistrationController : UpdateStatus(..., "uzregistruota")
   RegistrationController -> RegistrationController : GenerateParcelLabel()
-  RegistrationController -> NotificationService : send_registration_confirmation_email(shipment)
-  NotificationService -> StickerService : build_sticker_data_from_shipment(shipment)
-  NotificationService -> StickerService : generate_sticker_pdf(stickerData)
-  NotificationService -> NotificationService : base64 encode sticker PDF
+  RegistrationController -> StickerService : build_sticker_data_from_shipment(shipment)
+  RegistrationController -> StickerService : generate_sticker_pdf(stickerData)
+  RegistrationController -> RegistrationController : CreateRegistrationConfirmationMessage()
+  RegistrationController -> NotificationService : send_registration_confirmation_email(message)
+  NotificationService -> NotificationService : base64 encode prepared PDF
   NotificationService -> Brevo : POST /v3/smtp/email\nJSON textContent + attachment
   alt email send fails
     RegistrationController -> RegistrationController : log failure and keep registration successful
