@@ -16,7 +16,7 @@ from app.schemas.payment import (
     RegistrationSessionRead,
 )
 from app.schemas.shipment import ShipmentCreate
-from app.services import payment_service, shipment_service
+from app.services import notification_service, payment_service, shipment_service
 
 
 @dataclass
@@ -144,6 +144,16 @@ async def CompletePayment(
     if payment_result == "confirmed":
         shipment = await UpdateStatus(session, shipment.id, SiuntosBusena.uzregistruota)
         parcel_label = GenerateParcelLabel(shipment)
+        try:
+            registration_data = session_state.registration_data
+            await notification_service.send_registration_confirmation_email(
+                shipment,
+                recipient_email=(
+                    registration_data.siuntejas.el_pastas if registration_data is not None else None
+                ),
+            )
+        except Exception as exc:
+            print(f"Failed to send registration confirmation email: {exc}")
         return PaymentResultRead(
             result="confirmed",
             shipment=shipment_service.to_shipment_response(shipment),

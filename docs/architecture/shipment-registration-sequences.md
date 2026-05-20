@@ -17,6 +17,9 @@ control "administration_controller.py" as AdministrationController
 control "shipments_controller.py\n(WebController)" as WebController
 control "registration_service.py\n(RegistrationController)" as RegistrationController
 control "shipment_service.py" as ShipmentService
+control "notification_service.py" as NotificationService
+control "sticker_service.py" as StickerService
+control "Brevo API" as Brevo
 database "Database" as Database
 
 ShipmentsView -> AdministrationApi : fetchLockers({})
@@ -69,6 +72,14 @@ else Sender confirms
   RegistrationController -> RegistrationController : PayOnline()
   RegistrationController -> RegistrationController : UpdateStatus(..., "uzregistruota")
   RegistrationController -> RegistrationController : GenerateParcelLabel()
+  RegistrationController -> NotificationService : send_registration_confirmation_email(shipment)
+  NotificationService -> StickerService : build_sticker_data_from_shipment(shipment)
+  NotificationService -> StickerService : generate_sticker_pdf(stickerData)
+  NotificationService -> NotificationService : base64 encode sticker PDF
+  NotificationService -> Brevo : POST /v3/smtp/email\nJSON textContent + attachment
+  alt email send fails
+    RegistrationController -> RegistrationController : log failure and keep registration successful
+  end
   WebController --> ShipmentForm : PaymentResultRead JSON
   ShipmentForm -> ShipmentsView : onCreateComplete(shipment, message)
   ShipmentsView -> ShipmentsView : show summary only
@@ -85,8 +96,11 @@ Eiles tvarka:
 4. Pries galutini patvirtinima vartotojas gali grizti i forma ir redaguoti duomenis.
 5. `ConfirmForm()` sukuria siunta DB per `RegisterParcel()`.
 6. Registracija visada pereina i online apmokejimo langa.
-7. `PayForShipment()` patvirtina mokejima ir tada rodomas summary.
-8. Po refresh summary dingsta, nes `registeredShipment` yra tik React state.
+7. `PayForShipment()` patvirtina mokejima, sukuria lipduko PDF ir siuntejui issiuncia
+   patvirtinimo el. laiska su `sticker_<shipmentCode>.pdf` prisegtuku.
+8. Jei Brevo el. laisko siuntimas nepavyksta, klaida tik uzregistruojama serverio loge,
+   o siuntos registracija lieka sekminga.
+9. Po refresh summary dingsta, nes `registeredShipment` yra tik React state.
 
 ## 2. Lipduko atsisiuntimas is summary
 
@@ -100,7 +114,6 @@ control "sticker_controller.py" as StickerController
 entity "PDF Blob" as PdfBlob
 
 Sender -> Summary : PrintSticker()
-Summary -> Summary : window.open("", "_blank")
 Summary -> StickersApi : requestStickerPdf(registeredShipment)
 StickersApi -> StickersApi : buildStickerRequest(shipment)\n(no amount, no status)
 StickersApi -> ApiClient : apiPostBlob("/api/stickers/generate", StickerRequest)
@@ -111,9 +124,8 @@ StickerController -> StickerController : FPDF output
 StickerController --> ApiClient : 200 application/pdf
 ApiClient --> StickersApi : PDF Blob
 StickersApi --> Summary : PDF Blob
-Summary -> Summary : openStickerPdf()
 Summary -> Summary : downloadStickerPdf()
-Summary --> Sender : PDF opens in new window and downloads
+Summary --> Sender : downloads sticker_<shipmentCode>.pdf
 @enduml
 ```
 

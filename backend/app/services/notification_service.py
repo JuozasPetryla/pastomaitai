@@ -1,4 +1,6 @@
+import base64
 import datetime
+
 import httpx
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -15,6 +17,7 @@ from app.schemas.notification import (
     PranesimasRead,
     PranesimasUpdate,
 )
+from app.services import sticker_service
 
 BREVO_EMAIL_ENDPOINT = "https://api.brevo.com/v3/smtp/email"
 BREVO_SMS_ENDPOINT = "https://api.brevo.com/v3/transactionalSMS/sms"
@@ -123,20 +126,24 @@ async def get_notification_model(
 def create_sender_sms_text(shipment: Siunta, status: SiuntosBusena) -> str:
     if status == SiuntosBusena.tranzite:
         return (
-            f"Jūsų siunta {shipment.siuntos_kodas} yra tranzite. Siunta keliauja į adresą {shipment.gavimo_adresas}."
+            f"Jūsų siunta {shipment.siuntos_kodas} yra tranzite. "
+            f"Siunta keliauja į adresą {shipment.gavimo_adresas}."
         )
     return (
-        f"Jūsų siunta {shipment.siuntos_kodas} buvo pristatyta. Gavėjas gavo siuntą adresu {shipment.gavimo_adresas}."
+        f"Jūsų siunta {shipment.siuntos_kodas} buvo pristatyta. "
+        f"Gavėjas gavo siuntą adresu {shipment.gavimo_adresas}."
     )
 
 
 def create_recipient_sms_text(shipment: Siunta, status: SiuntosBusena) -> str:
     if status == SiuntosBusena.tranzite:
         return (
-            f"Jūsų siunta {shipment.siuntos_kodas} yra tranzite. Ji bus pristatyta adresu {shipment.gavimo_adresas}."
+            f"Jūsų siunta {shipment.siuntos_kodas} yra tranzite. "
+            f"Ji bus pristatyta adresu {shipment.gavimo_adresas}."
         )
     return (
-        f"Jūsų siunta {shipment.siuntos_kodas} buvo pristatyta. Dėkojame, kad naudojatės Pastomatais."
+        f"Jūsų siunta {shipment.siuntos_kodas} buvo pristatyta. "
+        "Dėkojame, kad naudojatės Pastomatais."
     )
 
 
@@ -144,13 +151,15 @@ def create_sender_email_text(shipment: Siunta, status: SiuntosBusena) -> str:
     if status == SiuntosBusena.tranzite:
         return (
             f"Sveiki {shipment.siuntejas.asmuo.vardas} {shipment.siuntejas.asmuo.pavarde},\n\n"
-            f"Jūsų siunta {shipment.siuntos_kodas} yra tranzite ir keliauja į gavėjo adresą {shipment.gavimo_adresas}."
+            f"Jūsų siunta {shipment.siuntos_kodas} yra tranzite ir keliauja "
+            f"į gavėjo adresą {shipment.gavimo_adresas}."
             "\n\nSekite siuntos būklę savo paskyroje ir paruoškite gavėją siuntos priėmimui."
         )
     return (
         f"Sveiki {shipment.siuntejas.asmuo.vardas} {shipment.siuntejas.asmuo.pavarde},\n\n"
-            f"Jūsų siunta {shipment.siuntos_kodas} buvo pristatyta gavėjui adresu {shipment.gavimo_adresas}."
-            "\n\nAčiū, kad naudojatės Pastomatais."
+        f"Jūsų siunta {shipment.siuntos_kodas} buvo pristatyta gavėjui "
+        f"adresu {shipment.gavimo_adresas}."
+        "\n\nAčiū, kad naudojatės Pastomatais."
     )
 
 
@@ -158,14 +167,16 @@ def create_recipient_email_text(shipment: Siunta, status: SiuntosBusena) -> str:
     if status == SiuntosBusena.tranzite:
         return (
             f"Sveiki {shipment.gavejas.asmuo.vardas} {shipment.gavejas.asmuo.pavarde},\n\n"
-            f"Jūsų siunta {shipment.siuntos_kodas} yra tranzite ir bus pristatyta adresu {shipment.gavimo_adresas}."
+            f"Jūsų siunta {shipment.siuntos_kodas} yra tranzite ir bus pristatyta "
+            f"adresu {shipment.gavimo_adresas}."
             "\n\nSekite pristatymo eigą ir pasiruoškite priimti siuntą."
         )
     return (
         f"Sveiki {shipment.gavejas.asmuo.vardas} {shipment.gavejas.asmuo.pavarde},\n\n"
-            f"Jūsų siunta {shipment.siuntos_kodas} buvo pristatyta adresu {shipment.gavimo_adresas}."
-            "\n\nAčiū, kad naudojatės Pastomatais."
-        )
+        f"Jūsų siunta {shipment.siuntos_kodas} buvo pristatyta adresu "
+        f"{shipment.gavimo_adresas}."
+        "\n\nAčiū, kad naudojatės Pastomatais."
+    )
 
 
 # def _build_notifications(shipment: Siunta, status: SiuntosBusena) -> list[Pranesimas]:
@@ -302,18 +313,92 @@ async def send_brevo_email(recipient_email: str, subject: str, text_content: str
     return 200 <= response.status_code < 300
 
 
+async def send_brevo_email_with_attachments(
+    recipient_email: str,
+    subject: str,
+    text_content: str,
+    attachments: list[dict[str, str]],
+) -> bool:
+    if not settings.brevo_api_key or not settings.brevo_sender_email:
+        print("Brevo API key or sender email not configured")
+        return False
+
+    payload = {
+        "sender": {
+            "email": settings.brevo_sender_email,
+            "name": settings.brevo_sender_name,
+        },
+        "to": [{"email": recipient_email}],
+        "subject": subject,
+        "textContent": text_content,
+        "attachment": attachments,
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                BREVO_EMAIL_ENDPOINT,
+                json=payload,
+                headers={"accept": "application/json", "api-key": settings.brevo_api_key},
+                timeout=15,
+            )
+            print(f"Email with attachment send response: {response.status_code} - {response.text}")
+    except httpx.HTTPError:
+        print("Failed to send email with attachment via Brevo")
+        return False
+
+    return 200 <= response.status_code < 300
+
+
+def create_registration_confirmation_email_text(shipment: Siunta) -> str:
+    sender = shipment.siuntejas.asmuo
+    receiver = shipment.gavejas.asmuo
+    return (
+        f"Sveiki {sender.vardas} {sender.pavarde},\n\n"
+        f"Jūsų siunta {shipment.siuntos_kodas} sėkmingai užregistruota.\n"
+        f"Gavėjas: {receiver.vardas} {receiver.pavarde}\n"
+        f"Siuntimas iš: {shipment.siuntimo_adresas}\n"
+        f"Pristatymas į: {shipment.gavimo_adresas}\n"
+        f"Dydis: {shipment.dydis.value.upper()}\n\n"
+        "Siuntos lipdukas prisegtas prie šio laiško.\n\n"
+        "Ačiū, kad naudojatės Pastomatais."
+    )
+
+
+async def send_registration_confirmation_email(
+    shipment: Siunta,
+    *,
+    recipient_email: str | None = None,
+) -> bool:
+    sticker_data = sticker_service.build_sticker_data_from_shipment(shipment)
+    sticker_pdf = sticker_service.generate_sticker_pdf(sticker_data)
+    attachment_name = f"sticker_{shipment.siuntos_kodas}.pdf"
+    confirmation_recipient = recipient_email or shipment.siuntejas.asmuo.el_pastas
+    return await send_brevo_email_with_attachments(
+        recipient_email=confirmation_recipient,
+        subject=f"Siunta {shipment.siuntos_kodas} užregistruota",
+        text_content=create_registration_confirmation_email_text(shipment),
+        attachments=[
+            {
+                "name": attachment_name,
+                "content": base64.b64encode(sticker_pdf).decode("ascii"),
+            }
+        ],
+    )
+
+
 async def send_unsent_sms_messages(session: AsyncSession) -> int:
     statement = select(Pranesimas).options(selectinload(Pranesimas.asmuo)).where(
-        Pranesimas.issiuntimo_operatoriui_data == None,
+        Pranesimas.issiuntimo_operatoriui_data.is_(None),
         Pranesimas.tipas == PranesimoTipas.sms,
     )
     result = await session.scalars(statement)
     messages = result.all()
 
     for message in messages:
-        message.issiuntimo_operatoriui_data = datetime.datetime.now(datetime.timezone.utc)
+        message.issiuntimo_operatoriui_data = datetime.datetime.now(datetime.UTC)
         success = await send_brevo_sms(message.asmuo.telefono_nr, message.tekstas)
-        message.operatoriaus_atsako_data = datetime.datetime.now(datetime.timezone.utc)
+        message.operatoriaus_atsako_data = datetime.datetime.now(datetime.UTC)
         if success:
             message.issiustas = True
 
@@ -325,7 +410,7 @@ async def send_unsent_sms_messages(session: AsyncSession) -> int:
 
 async def send_unsent_email_messages(session: AsyncSession) -> int:
     statement = select(Pranesimas).options(selectinload(Pranesimas.asmuo)).where(
-        Pranesimas.issiuntimo_operatoriui_data == None,
+        Pranesimas.issiuntimo_operatoriui_data.is_(None),
         Pranesimas.tipas == PranesimoTipas.el_pastas,
     )
     result = await session.scalars(statement)
@@ -333,9 +418,9 @@ async def send_unsent_email_messages(session: AsyncSession) -> int:
 
     for message in messages:
         subject = "Siuntos būsena"
-        message.issiuntimo_operatoriui_data = datetime.datetime.now(datetime.timezone.utc)
+        message.issiuntimo_operatoriui_data = datetime.datetime.now(datetime.UTC)
         success = await send_brevo_email(message.asmuo.el_pastas, subject, message.tekstas)
-        message.operatoriaus_atsako_data = datetime.datetime.now(datetime.timezone.utc)
+        message.operatoriaus_atsako_data = datetime.datetime.now(datetime.UTC)
         if success:
             message.issiustas = True
 
