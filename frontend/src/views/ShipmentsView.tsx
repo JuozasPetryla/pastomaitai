@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 
 import {
-  createShipment,
   deleteShipment,
   fetchShipment,
   fetchShipments,
@@ -15,7 +14,6 @@ import { ShipmentForm } from '../components/ShipmentForm';
 import { ShipmentList } from '../components/ShipmentList';
 import type {
   Shipment,
-  ShipmentCreatePayload,
   ShipmentFilters as ShipmentFiltersType,
   ShipmentListItem,
   ShipmentUpdatePayload,
@@ -42,6 +40,14 @@ export function ShipmentsView() {
   const showError = (message: string) => {
     setModal({
       title: 'Error',
+      message,
+      actions: [{ label: 'Close', onClick: closeModal, variant: 'primary' }],
+    });
+  };
+
+  const showSuccess = (message: string) => {
+    setModal({
+      title: 'Payment successful',
       message,
       actions: [{ label: 'Close', onClick: closeModal, variant: 'primary' }],
     });
@@ -83,19 +89,6 @@ export function ShipmentsView() {
     }
   };
 
-  const handleCreate = async (payload: ShipmentCreatePayload) => {
-    try {
-      const created = await createShipment(payload);
-      setSelectedId(created.id);
-      setSelectedShipment(created);
-      setFormMode(undefined);
-      await loadShipments();
-      setStatusMessage('Shipment created successfully.');
-    } catch (caught) {
-      showError(caught instanceof Error ? caught.message : 'Failed to create shipment.');
-    }
-  };
-
   const handleUpdate = async (payload: ShipmentUpdatePayload) => {
     if (!selectedId) {
       return;
@@ -109,6 +102,22 @@ export function ShipmentsView() {
       setStatusMessage('Shipment updated successfully.');
     } catch (caught) {
       showError(caught instanceof Error ? caught.message : 'Failed to update shipment.');
+    }
+  };
+
+  const handleRegistrationComplete = async (
+    created: Shipment,
+    message: string,
+    outcome?: 'payment_success',
+  ) => {
+    setSelectedId(created.id);
+    setSelectedShipment(created);
+    setFormMode(undefined);
+    await loadShipments();
+    setStatusMessage(message);
+
+    if (outcome === 'payment_success') {
+      showSuccess(message);
     }
   };
 
@@ -178,7 +187,7 @@ export function ShipmentsView() {
           mode={formMode}
           shipment={selectedShipment}
           onCancel={() => setFormMode(undefined)}
-          onCreate={handleCreate}
+          onCreateComplete={handleRegistrationComplete}
           onUpdate={handleUpdate}
           onError={showError}
         />

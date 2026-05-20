@@ -1,9 +1,15 @@
-import { apiDelete, apiGet, apiPatch, apiPost } from './client';
+import { apiDelete, apiGet, apiPatch, apiPost, apiRequest } from './client';
 import type {
   Shipment,
   ShipmentCreatePayload,
   ShipmentFilters,
   ShipmentListItem,
+  ShipmentPaymentAction,
+  ShipmentPaymentRequest,
+  ShipmentPaymentResult,
+  ShipmentRegistrationPreview,
+  ShipmentRegistrationResult,
+  ShipmentRegistrationSession,
   ShipmentUpdatePayload,
 } from '../models/shipment';
 
@@ -55,6 +61,61 @@ type ShipmentResponse = {
   updated_at: string;
   siuntejas: ShipmentPartyResponse;
   gavejas: ShipmentPartyResponse;
+};
+
+type ApiShipmentCreatePayload = {
+  siuntejas: {
+    vardas: string;
+    pavarde: string;
+    telefono_nr: string;
+    el_pastas: string;
+  };
+  gavejas: {
+    vardas: string;
+    pavarde: string;
+    telefono_nr: string;
+    el_pastas: string;
+  };
+  dydis: Shipment['size'];
+  gavimo_adresas: string;
+  siuntimo_adresas: string;
+  data?: string;
+  apmokamas_pastomate: boolean;
+};
+
+type RegistrationSessionResponse = {
+  session_id: string;
+};
+
+type RegistrationPreviewResponse = {
+  session_id: string;
+  registration_data: ApiShipmentCreatePayload;
+  amount: number | string;
+};
+
+type PaymentRequestResponse = {
+  shipment_id: number;
+  order_number: number;
+  shipment_code: string;
+  amount: number | string;
+  invoice: string | null;
+  pay_at_locker: boolean;
+  status: 'pending' | 'paid_at_locker' | 'online_required';
+};
+
+type RegistrationResultResponse = {
+  result: 'payment_required' | 'registered';
+  shipment: ShipmentResponse;
+  payment_request: PaymentRequestResponse | null;
+  parcel_label: string | null;
+  message: string;
+};
+
+type PaymentResultResponse = {
+  result: 'confirmed' | 'canceled' | 'unsuccessful';
+  shipment: ShipmentResponse;
+  parcel_label: string | null;
+  message: string;
 };
 
 const shipmentStatusFromApi: Record<ApiShipmentStatus, Shipment['status']> = {
@@ -125,6 +186,67 @@ function toShipment(response: ShipmentResponse): Shipment {
   };
 }
 
+function fromPayload(payload: ApiShipmentCreatePayload): ShipmentCreatePayload {
+  return {
+    sender: {
+      firstName: payload.siuntejas.vardas,
+      lastName: payload.siuntejas.pavarde,
+      phoneNumber: payload.siuntejas.telefono_nr,
+      email: payload.siuntejas.el_pastas,
+    },
+    receiver: {
+      firstName: payload.gavejas.vardas,
+      lastName: payload.gavejas.pavarde,
+      phoneNumber: payload.gavejas.telefono_nr,
+      email: payload.gavejas.el_pastas,
+    },
+    size: payload.dydis,
+    destinationAddress: payload.gavimo_adresas,
+    dispatchAddress: payload.siuntimo_adresas,
+    shipmentDate: payload.data,
+    paymentAtLocker: payload.apmokamas_pastomate,
+  };
+}
+
+function toPaymentRequest(response: PaymentRequestResponse): ShipmentPaymentRequest {
+  return {
+    shipmentId: response.shipment_id,
+    orderNumber: response.order_number,
+    shipmentCode: response.shipment_code,
+    amount: Number(response.amount),
+    invoice: response.invoice,
+    payAtLocker: response.pay_at_locker,
+    status: response.status,
+  };
+}
+
+function toRegistrationPreview(response: RegistrationPreviewResponse): ShipmentRegistrationPreview {
+  return {
+    sessionId: response.session_id,
+    registrationData: fromPayload(response.registration_data),
+    amount: Number(response.amount),
+  };
+}
+
+function toRegistrationResult(response: RegistrationResultResponse): ShipmentRegistrationResult {
+  return {
+    result: response.result,
+    shipment: toShipment(response.shipment),
+    paymentRequest: response.payment_request ? toPaymentRequest(response.payment_request) : null,
+    parcelLabel: response.parcel_label,
+    message: response.message,
+  };
+}
+
+function toPaymentResult(response: PaymentResultResponse): ShipmentPaymentResult {
+  return {
+    result: response.result,
+    shipment: toShipment(response.shipment),
+    parcelLabel: response.parcel_label,
+    message: response.message,
+  };
+}
+
 function toPayload(payload: ShipmentCreatePayload | ShipmentUpdatePayload) {
   return {
     ...(payload.sender
@@ -157,6 +279,45 @@ function toPayload(payload: ShipmentCreatePayload | ShipmentUpdatePayload) {
     ...('status' in payload && payload.status
       ? { busena: shipmentStatusToApi[payload.status] }
       : {}),
+  };
+}
+
+function toCreatePayload(payload: ShipmentCreatePayload): ApiShipmentCreatePayload {
+  return {
+    siuntejas: {
+      vardas: payload.sender.firstName,
+      pavarde: payload.sender.lastName,
+      telefono_nr: payload.sender.phoneNumber,
+      el_pastas: payload.sender.email,
+    },
+    gavejas: {
+      vardas: payload.receiver.firstName,
+      pavarde: payload.receiver.lastName,
+      telefono_nr: payload.receiver.phoneNumber,
+      el_pastas: payload.receiver.email,
+    },
+    dydis: payload.size,
+    gavimo_adresas: payload.destinationAddress,
+    siuntimo_adresas: payload.dispatchAddress,
+    ...(payload.shipmentDate ? { data: payload.shipmentDate } : {}),
+    apmokamas_pastomate: payload.paymentAtLocker,
+  };
+}
+
+function toPaymentActionPayload(action: ShipmentPaymentAction) {
+  if (action.cancelPayment) {
+    return { cancel_payment: true };
+  }
+
+  return {
+    cancel_payment: false,
+    payment_details: {
+      card_holder: action.paymentDetails.cardHolder,
+      card_number: action.paymentDetails.cardNumber,
+      expiry_month: action.paymentDetails.expiryMonth,
+      expiry_year: action.paymentDetails.expiryYear,
+      cvv: action.paymentDetails.cvv,
+    },
   };
 }
 
@@ -202,4 +363,60 @@ export async function updateShipment(id: number, payload: ShipmentUpdatePayload)
 
 export async function deleteShipment(id: number): Promise<void> {
   await apiDelete(`/api/shipments/${id}`);
+}
+
+export async function startShipmentRegistration(): Promise<ShipmentRegistrationSession> {
+  const response = await apiRequest<RegistrationSessionResponse>(
+    '/api/shipments/registration-sessions',
+    { method: 'POST' },
+  );
+  return {
+    sessionId: response.session_id,
+  };
+}
+
+export async function validateShipmentRegistrationForm(
+  sessionId: string,
+  payload: ShipmentCreatePayload,
+): Promise<ShipmentRegistrationPreview> {
+  const response = await apiPost<RegistrationPreviewResponse, ApiShipmentCreatePayload>(
+    `/api/shipments/registration-sessions/${sessionId}/validate-form`,
+    toCreatePayload(payload),
+  );
+  return toRegistrationPreview(response);
+}
+
+export async function confirmShipmentRegistration(
+  sessionId: string,
+  payload: ShipmentCreatePayload,
+): Promise<ShipmentRegistrationResult> {
+  const response = await apiPost<RegistrationResultResponse, ApiShipmentCreatePayload>(
+    `/api/shipments/registration-sessions/${sessionId}/confirm`,
+    toCreatePayload(payload),
+  );
+  return toRegistrationResult(response);
+}
+
+export async function requestShipmentPaymentDetails(
+  sessionId: string,
+): Promise<ShipmentPaymentRequest> {
+  const response = await apiGet<PaymentRequestResponse>(
+    `/api/payments/registration-sessions/${sessionId}/details`,
+  );
+  return toPaymentRequest(response);
+}
+
+export async function sendShipmentPaymentDetails(
+  sessionId: string,
+  action: ShipmentPaymentAction,
+): Promise<ShipmentPaymentResult> {
+  const response = await apiPost<PaymentResultResponse, ReturnType<typeof toPaymentActionPayload>>(
+    `/api/payments/registration-sessions/${sessionId}/details`,
+    toPaymentActionPayload(action),
+  );
+  return toPaymentResult(response);
+}
+
+export async function cancelShipmentRegistrationSession(sessionId: string): Promise<void> {
+  await apiDelete(`/api/payments/registration-sessions/${sessionId}`);
 }
