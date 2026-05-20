@@ -1,4 +1,3 @@
-import hashlib
 import os
 import tempfile
 from datetime import date
@@ -18,6 +17,7 @@ class StickerRequestParty(BaseModel):
 
 
 class StickerRequest(BaseModel):
+    shipment_id: str = Field(..., description="Siuntos ID arba kodas")
     parcel_info: str = Field(..., description="Siuntos informacija (pvz., dydis, svoris)")
     sender: StickerRequestParty = Field(..., description="Siuntėjo informacija")
     receiver: StickerRequestParty = Field(..., description="Gavėjo informacija")
@@ -27,26 +27,9 @@ class StickerRequest(BaseModel):
 router = APIRouter(prefix="/stickers", tags=["stickers"])
 
 
-def generate_identifier(payload: StickerRequest) -> str:
-    """Generates a unique 12-digit identifier based on the parcel, sender, receiver and date."""
-    combined_str = (
-        f"{payload.parcel_info}-"
-        f"{payload.sender.name}-{payload.sender.phone}-{payload.sender.email}-"
-        f"{payload.receiver.name}-{payload.receiver.phone}-{payload.receiver.email}-"
-        f"{payload.parcel_date.isoformat()}"
-    )
-    
-    hash_obj = hashlib.sha256(combined_str.encode("utf-8"))
-    hash_int = int(hash_obj.hexdigest(), 16)
-    
-    # Extract the first 12 digits
-    identifier = str(hash_int)[:12].zfill(12)
-    return identifier
-
-
 @router.post("/generate", responses={200: {"content": {"application/pdf": {}}}})
 async def generate_sticker(request: StickerRequest) -> Response:
-    identifier = generate_identifier(request)
+    identifier = request.shipment_id
     
     # 1. Generate QR code
     qr = qrcode.QRCode(
@@ -125,6 +108,7 @@ async def generate_sticker(request: StickerRequest) -> Response:
 async def test_generate_sticker() -> Response:
     """A convenient GET endpoint for testing PDF generation directly from the browser."""
     dummy_request = StickerRequest(
+        shipment_id="TEST-123456789",
         parcel_info="Dydis: M, Svoris: 2kg",
         sender=StickerRequestParty(
             name="Jonas Jonaitis",
