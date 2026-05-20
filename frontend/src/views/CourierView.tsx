@@ -7,12 +7,15 @@ import {
   fetchCouriers,
   updateCourier,
 } from '../api/courierApi';
+import { fetchCourierLockers, type CourierLockerListItem } from '../api/courierLockerApi';
 import { AppModal, type AppModalAction } from '../components/AppModal';
 import { CourierActions } from '../components/CourierActions';
 import { CourierDetails } from '../components/CourierDetails';
 import { CourierFilters } from '../components/CourierFilters';
 import { CourierForm } from '../components/CourierForm';
 import { CourierList } from '../components/CourierList';
+import { CourierLockerList } from '../components/CourierLockerList';
+import { CourierLockerTerminal } from '../components/CourierLockerTerminal';
 import type {
   Courier,
   CourierCreatePayload,
@@ -22,6 +25,7 @@ import type {
 } from '../models/courier';
 
 type FormMode = 'create' | 'edit';
+type WorkflowTab = 'couriers' | 'lockers';
 type ModalState = {
   title: string;
   message: string;
@@ -29,16 +33,24 @@ type ModalState = {
 };
 
 export function CourierView() {
+  const [tab, setTab] = useState<WorkflowTab>('couriers');
+
+  // ── Courier management state ──────────────────────────────────────────────
   const [filters, setFilters] = useState<CourierFiltersType>({ role: '' });
   const [couriers, setCouriers] = useState<CourierListItem[]>([]);
   const [selectedCourier, setSelectedCourier] = useState<Courier>();
   const [selectedId, setSelectedId] = useState<number>();
   const [status, setStatus] = useState('Select filters or a courier.');
   const [formMode, setFormMode] = useState<FormMode>();
+
+  // ── Locker service state ──────────────────────────────────────────────────
+  const [lockers, setLockers] = useState<CourierLockerListItem[]>([]);
+  const [selectedLockerId, setSelectedLockerId] = useState<number>();
+  const [lockerStatus, setLockerStatus] = useState('Loading parcel machines...');
+
+  // ── Shared modal state ────────────────────────────────────────────────────
   const [modal, setModal] = useState<ModalState>();
-
   const closeModal = () => setModal(undefined);
-
   const showError = (message: string) => {
     setModal({
       title: 'Error',
@@ -47,9 +59,9 @@ export function CourierView() {
     });
   };
 
-  const loadCouriers = async (
-    nextFilters: CourierFiltersType = filters,
-  ): Promise<CourierListItem[]> => {
+  // ── Courier CRUD ──────────────────────────────────────────────────────────
+
+  const loadCouriers = async (nextFilters: CourierFiltersType = filters) => {
     setFilters(nextFilters);
     setStatus('Loading couriers...');
     try {
@@ -96,10 +108,7 @@ export function CourierView() {
   };
 
   const handleUpdate = async (payload: CourierUpdatePayload) => {
-    if (!selectedId) {
-      return;
-    }
-
+    if (!selectedId) return;
     try {
       const updated = await updateCourier(selectedId, payload);
       setSelectedCourier(updated);
@@ -112,10 +121,7 @@ export function CourierView() {
   };
 
   const handleDelete = async () => {
-    if (!selectedId) {
-      return;
-    }
-
+    if (!selectedId) return;
     try {
       await deleteCourier(selectedId);
       setSelectedId(undefined);
@@ -130,11 +136,7 @@ export function CourierView() {
   };
 
   const requestDelete = () => {
-    if (!selectedCourier) {
-      showError('Select a courier to delete.');
-      return;
-    }
-
+    if (!selectedCourier) { showError('Select a courier to delete.'); return; }
     setModal({
       title: 'Delete courier?',
       message: `Courier "${selectedCourier.firstName} ${selectedCourier.lastName}" will be permanently removed.`,
@@ -143,56 +145,123 @@ export function CourierView() {
         {
           label: 'Delete',
           variant: 'danger',
-          onClick: () => {
-            closeModal();
-            void handleDelete();
-          },
+          onClick: () => { closeModal(); void handleDelete(); },
         },
       ],
     });
   };
 
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      void loadCouriers(filters);
-    }, 250);
+  // ── Locker list ───────────────────────────────────────────────────────────
 
+  const loadLockers = async () => {
+    setLockerStatus('Loading parcel machines...');
+    try {
+      const items = await fetchCourierLockers();
+      setLockers(items);
+      setLockerStatus(items.length ? 'Select a parcel machine to service.' : 'No active parcel machines.');
+    } catch (caught) {
+      setLockers([]);
+      setLockerStatus('Failed to load parcel machines.');
+      showError(caught instanceof Error ? caught.message : 'Failed to load parcel machines.');
+    }
+  };
+
+  // ── Effects ───────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => { void loadCouriers(filters); }, 250);
     return () => window.clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.role]);
 
+  useEffect(() => {
+    if (tab === 'lockers') { void loadLockers(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div className="admin-workflow">
-      <CourierFilters filters={filters} onChange={setFilters} />
-      <CourierActions
-        canEdit={selectedCourier !== undefined}
-        canDelete={selectedId !== undefined}
-        onCreate={() => setFormMode('create')}
-        onEdit={() => setFormMode('edit')}
-        onDelete={requestDelete}
-      />
-
-      {formMode ? (
-        <CourierForm
-          mode={formMode}
-          courier={selectedCourier}
-          onCancel={() => setFormMode(undefined)}
-          onCreate={handleCreate}
-          onUpdate={handleUpdate}
-          onError={showError}
-        />
-      ) : null}
-
-      <div className="admin-grid">
-        <section aria-label="Courier list">
-          <p className="workflow-status">{status}</p>
-          <CourierList activeId={selectedId} items={couriers} onSelect={selectCourier} />
-        </section>
-
-        <section aria-label="Selected courier details">
-          <CourierDetails courier={selectedCourier} />
-        </section>
+      {/* Top-level tabs */}
+      <div className="courier-view-tabs">
+        <button
+          className={tab === 'couriers' ? 'active' : ''}
+          type="button"
+          onClick={() => setTab('couriers')}
+        >
+          Courier Management
+        </button>
+        <button
+          className={tab === 'lockers' ? 'active' : ''}
+          type="button"
+          onClick={() => setTab('lockers')}
+        >
+          Service Parcel Machines
+        </button>
       </div>
+
+      {/* ── Courier Management ── */}
+      {tab === 'couriers' && (
+        <>
+          <CourierFilters filters={filters} onChange={setFilters} />
+          <CourierActions
+            canEdit={selectedCourier !== undefined}
+            canDelete={selectedId !== undefined}
+            onCreate={() => setFormMode('create')}
+            onEdit={() => setFormMode('edit')}
+            onDelete={requestDelete}
+          />
+
+          {formMode ? (
+            <CourierForm
+              mode={formMode}
+              courier={selectedCourier}
+              onCancel={() => setFormMode(undefined)}
+              onCreate={handleCreate}
+              onUpdate={handleUpdate}
+              onError={showError}
+            />
+          ) : null}
+
+          <div className="admin-grid">
+            <section aria-label="Courier list">
+              <p className="workflow-status">{status}</p>
+              <CourierList activeId={selectedId} items={couriers} onSelect={selectCourier} />
+            </section>
+            <section aria-label="Selected courier details">
+              <CourierDetails courier={selectedCourier} />
+            </section>
+          </div>
+        </>
+      )}
+
+      {/* ── Locker Service ── */}
+      {tab === 'lockers' && (
+        <div className="admin-grid">
+          <section aria-label="Parcel machine list">
+            <p className="workflow-status">{lockerStatus}</p>
+            <CourierLockerList
+              lockers={lockers}
+              selectedId={selectedLockerId}
+              onSelect={(id) => {
+                setSelectedLockerId(id);
+              }}
+            />
+          </section>
+
+          <section aria-label="Locker service terminal">
+            {selectedLockerId ? (
+              <CourierLockerTerminal
+                lockerId={selectedLockerId}
+                onError={showError}
+              />
+            ) : (
+              <p className="empty-state">Select a parcel machine to start servicing.</p>
+            )}
+          </section>
+        </div>
+      )}
 
       {modal ? <AppModal title={modal.title} message={modal.message} actions={modal.actions} /> : null}
     </div>

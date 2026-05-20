@@ -90,21 +90,40 @@ function toLockerPickupResult(response: LockerActionResponse): LockerPickupResul
   };
 }
 
-export async function fetchDemoLockerState(): Promise<DemoLockerState> {
-  const response = await apiGet<LockerStateResponse>('/api/lockers/demo');
-  return toLockerState(response);
+type CourierLockerContents = {
+  locker: LockerStateResponse;
+};
+
+export async function fetchLockerState(lockerId: number): Promise<DemoLockerState> {
+  const response = await apiGet<CourierLockerContents>(`/api/lockers/${lockerId}/contents`);
+  return toLockerState(response.locker);
 }
 
-export async function openPickupLocker(shipmentCode: string): Promise<LockerPickupResult> {
-  const response = await apiRequest<LockerActionResponse>('/api/lockers/demo/pickup/open', {
+export async function openPickupLocker(lockerId: number, shipmentCode: string): Promise<LockerPickupResult> {
+  const response = await apiRequest<LockerActionResponse>(`/api/lockers/${lockerId}/pickup/open`, {
     method: 'POST',
     body: { siuntos_kodas: shipmentCode },
   });
   return toLockerPickupResult(response);
 }
 
-export async function closeLockerDoors(): Promise<LockerPickupResult> {
-  const response = await apiRequest<LockerActionResponse>('/api/lockers/demo/close', {
+export async function closeLockerDoors(lockerId: number): Promise<LockerPickupResult> {
+  const response = await apiRequest<LockerActionResponse>(`/api/lockers/${lockerId}/close`, {
+    method: 'POST',
+  });
+  return toLockerPickupResult(response);
+}
+
+export async function openDropoffLocker(lockerId: number, shipmentCode: string): Promise<LockerPickupResult> {
+  const response = await apiRequest<LockerActionResponse>(`/api/lockers/${lockerId}/dropoff/open`, {
+    method: 'POST',
+    body: { siuntos_kodas: shipmentCode },
+  });
+  return toLockerPickupResult(response);
+}
+
+export async function closeDropoffLocker(lockerId: number): Promise<LockerPickupResult> {
+  const response = await apiRequest<LockerActionResponse>(`/api/lockers/${lockerId}/dropoff/close`, {
     method: 'POST',
   });
   return toLockerPickupResult(response);

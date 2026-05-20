@@ -206,7 +206,7 @@ async def create_prepared_shipment_model(
         uzsakymo_nr=order_number,
         siuntejas_id=sender_role.asmuo_id,
         gavejas_id=receiver_role.asmuo_id,
-        pastomato_skyrius_id=payload.pastomato_skyrius_id,
+        pastomato_skyrius_id=payload.pastomato_skyrius_id or None,
         dydis=payload.dydis,
         gavimo_adresas=payload.gavimo_adresas,
         siuntimo_adresas=payload.siuntimo_adresas,

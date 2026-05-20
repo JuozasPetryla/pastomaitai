@@ -85,7 +85,7 @@ class LockerCellResponse(BaseModel):
 
 
 class LockerActiveSessionResponse(BaseModel):
-    veiksmas: Literal["atsiemimas"]
+    veiksmas: Literal['atsiemimas', 'iskrovimas', 'pakrovimas', 'idejimas']
     siuntos_id: int
     siuntos_kodas: str
     skyriaus_id: int
@@ -108,3 +108,30 @@ class LockerActionResponse(BaseModel):
     zinute: str
     locker: LockerStateResponse
     siunta: ShipmentResponse | None = None
+
+
+# ── Courier parcel machine service ──────────────────────────────────────────
+
+class CourierLockerListItem(BaseModel):
+    id: int
+    produkto_kodas: str
+    adresas: str
+    busena: PastomatoBusena
+    laukia_iskrovimo: int   # shipments with busena=ideta (inserted, waiting for pickup)
+    laukia_pakrovimo: int   # shipments with busena=uzregistruota assigned here (to be delivered)
+
+
+class CourierLockerContents(BaseModel):
+    locker: LockerStateResponse
+    siuntos_iskrovimui: list[ShipmentResponse]   # ideta → tranzite
+    siuntos_pakrovimui: list[ShipmentResponse]   # uzregistruota targeted here
+
+
+class CourierTakeoutRequest(BaseModel):
+    """Body for a single courier takeout step."""
+    siuntos_kodas: str = Field(min_length=3, max_length=64)
+
+
+class CourierInsertRequest(BaseModel):
+    """Body for a single courier insert step."""
+    siuntos_kodas: str = Field(min_length=3, max_length=64)

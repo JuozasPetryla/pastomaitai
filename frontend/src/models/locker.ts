@@ -15,7 +15,7 @@ export type LockerCell = {
   number: number;
 };
 
-export type LockerAction = 'atsiemimas';
+export type LockerAction = 'atsiemimas' | 'pakrovimas' | 'iskrovimas' | 'idejimas';
 
 export type DemoLockerCell = {
   id: number;
